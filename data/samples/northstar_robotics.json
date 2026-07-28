@@ -1,0 +1,46 @@
+{
+  "metadata": {
+    "as_of_date": "2025-12-31",
+    "currency": "USD",
+    "source": "Fictional sample data for the offline prototype"
+  },
+  "company": {
+    "ticker": "NSTR",
+    "name": "Northstar Robotics Inc.",
+    "sector": "Industrials",
+    "industry": "Industrial Automation",
+    "description": "Northstar Robotics develops automation systems for manufacturing and warehouse operations."
+  },
+  "annual_financials": [
+    {
+      "fiscal_year": 2023,
+      "revenue": 120000000,
+      "operating_income": 10000000,
+      "net_income": 6000000,
+      "cash_and_equivalents": 22000000,
+      "total_debt": 30000000,
+      "operating_cash_flow": 14000000,
+      "capital_expenditures": 5000000
+    },
+    {
+      "fiscal_year": 2024,
+      "revenue": 138000000,
+      "operating_income": 13000000,
+      "net_income": 8000000,
+      "cash_and_equivalents": 25000000,
+      "total_debt": 28000000,
+      "operating_cash_flow": 18000000,
+      "capital_expenditures": 6000000
+    },
+    {
+      "fiscal_year": 2025,
+      "revenue": 160000000,
+      "operating_income": 18000000,
+      "net_income": 12000000,
+      "cash_and_equivalents": 31000000,
+      "total_debt": 24000000,
+      "operating_cash_flow": 24000000,
+      "capital_expenditures": 7000000
+    }
+  ]
+}
