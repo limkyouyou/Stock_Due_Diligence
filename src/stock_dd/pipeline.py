@@ -40,7 +40,7 @@ def run_offline_pipeline(
     if output_path is None:
         report_filename = (
             f"{research_data.company.ticker.lower()}_"
-            f"{research_data.metadata.as_of_data.isoformat()}_report.md"
+            f"{research_data.metadata.as_of_date.isoformat()}_report.md"
         )
         destination_path = Path("reports") / report_filename
     else:
