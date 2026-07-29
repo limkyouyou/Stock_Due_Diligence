@@ -1,6 +1,27 @@
+# Python packaging
 *.egg-info/
 dist/
 build/
+
+# Python cache files
 __pycache__/
 *.py[cod]
+
+# Virtual environment
 .venv/
+
+# Testing and development tools
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Generated reports
+reports/*
+!reports/.gitkeep
