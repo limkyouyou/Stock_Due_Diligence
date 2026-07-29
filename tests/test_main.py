@@ -56,21 +56,19 @@ def test_main_returns_zero_and_prints_success(
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert(
-        f"Report created for NSTR: {output_path}" in captured.out
-    )
+    assert f"Report created for NSTR: {output_path}" in captured.out
     assert captured.err == ""
 
 
 def test_main_returns_two_for_invalid_research_data(
     monkeypatch: pytest.MonkeyPatch,
-    capsys:pytest.CaptureFixture[str],
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     """Invalid research data should return exit code two."""
 
     def fake_fun_offline_pipeline(
-            input_path: str | Path,
-            output_path: str | Path | None = None,
+        input_path: str | Path,
+        output_path: str | Path | None = None,
     ) -> PipelineResult:
         raise ResearchDataError("Required field is missing.")
 
@@ -95,9 +93,7 @@ def test_main_returns_two_for_invalid_research_data(
 
     assert exit_code == 2
     assert captured.out == ""
-    assert (
-        "Input data error: Required field is missing." in captured.err
-    )
+    assert "Input data error: Required field is missing." in captured.err
 
 
 def test_main_returns_one_for_file_system_error(
@@ -133,9 +129,7 @@ def test_main_returns_one_for_file_system_error(
 
     assert exit_code == 1
     assert captured.out == ""
-    assert (
-        "File system error: Unable to write report." in captured.err
-    )
+    assert "File system error: Unable to write report." in captured.err
 
 
 def test_package_entry_point_runs_complete_pipeline(
@@ -143,12 +137,7 @@ def test_package_entry_point_runs_complete_pipeline(
 ) -> None:
     """Executing the package should complete the real CLI pipeline."""
     project_root = Path(__file__).resolve().parents[1]
-    sample_path = (
-        project_root
-        / "data"
-        / "samples"
-        / "northstar_robotics.json"
-    )
+    sample_path = project_root / "data" / "samples" / "northstar_robotics.json"
     output_path = tmp_path / "entry_point_report.md"
 
     result = subprocess.run(
