@@ -12,6 +12,7 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = [
+    "mypy>=2.3,<3",
     "pytest>=9.1,<10",
     "ruff>=0.15.22,<0.16",
 ]
@@ -37,3 +38,11 @@ select = [
     "B",
     "UP",
 ]
+
+[tool.mypy]
+python_version = "3.14"
+files = ["src", "tests"]
+strict = true
+pretty = true
+show_error_codes = true
+warn_unreachable = true
