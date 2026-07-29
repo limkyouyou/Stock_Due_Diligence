@@ -30,7 +30,7 @@ jobs:
         run: python -m pip install --upgrade pip
 
       - name: Install project
-        run: python -m pip intall --editable ".[dev]"
+        run: python -m pip install --editable ".[dev]"
 
       - name: Run Ruff linting
         run: python -m ruff format --checkout
