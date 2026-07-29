@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Quality checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out reposity
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install project
+        run: python -m pip intall --editable ".[dev]"
+
+      - name: Run Ruff linting
+        run: python -m ruff format --checkout
+
+      - name: Run mypy
+        run: python -m mypy
+
+      - name: Run tests with coverage
+        run: >
+          python -m pytest
+          --cov=stock_dd
+          --cov-report=term-missing
