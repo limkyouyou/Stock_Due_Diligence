@@ -4,7 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from stock_dd.loader import ResearchDataError
+from stock_dd.exceptions import ResearchDataError
 from stock_dd.pipeline import run_offline_pipeline
 
 

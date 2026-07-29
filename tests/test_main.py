@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from stock_dd import __main__ as cli
-from stock_dd.loader import ResearchDataError
+from stock_dd.exceptions import ResearchDataError
 from stock_dd.pipeline import PipelineResult
 
 

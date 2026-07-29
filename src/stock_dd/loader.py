@@ -8,16 +8,13 @@ from json import JSONDecodeError
 from pathlib import Path
 from typing import Any
 
+from stock_dd.exceptions import ResearchDataError
 from stock_dd.models import (
     AnnualFinancial,
     Company,
     CompanyResearchData,
     ResearchMetadata,
 )
-
-
-class ResearchDataError(ValueError):
-    """Raised when research data cannot be loaded or validated."""
 
 
 def load_research_data(file_path: str | Path) -> CompanyResearchData:

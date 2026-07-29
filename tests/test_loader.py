@@ -8,7 +8,8 @@ from typing import Any
 
 import pytest
 
-from stock_dd.loader import ResearchDataError, load_research_data
+from stock_dd.exceptions import ResearchDataError
+from stock_dd.loader import load_research_data
 
 
 @pytest.fixture
