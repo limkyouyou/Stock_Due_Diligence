@@ -12,12 +12,12 @@ from stock_dd.models import AnnualFinancial
 
 
 def create_financial(
-        *,
-        fiscal_year: int = 2025,
-        revenue: int = 160_000_000,
-        operating_income: int = 18_000_000,
-        operating_cash_flow: int = 24_000_000,
-        capital_expenditures: int = 7_000_000,
+    *,
+    fiscal_year: int = 2025,
+    revenue: int = 160_000_000,
+    operating_income: int = 18_000_000,
+    operating_cash_flow: int = 24_000_000,
+    capital_expenditures: int = 7_000_000,
 ) -> AnnualFinancial:
     """Create an AnnualFinancial object for testing."""
 

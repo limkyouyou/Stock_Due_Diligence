@@ -1,8 +1,8 @@
 """Command-line entry point for Stock DD MAS."""
 
 import argparse
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from stock_dd.loader import ResearchDataError
 from stock_dd.pipeline import run_offline_pipeline
@@ -14,8 +14,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="stock-dd",
         description=(
-            "Generate an offline stock due-diligence report "
-            "from a JSON research file."
+            "Generate an offline stock due-diligence report from a JSON research file."
         ),
     )
 
@@ -29,10 +28,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--output",
         type=Path,
-        help=(
-            "Optional report output path. "
-            "Defaults to the reports directory."
-        )
+        help=("Optional report output path. Defaults to the reports directory."),
     )
 
     return parser
@@ -62,10 +58,7 @@ def main() -> int:
         )
         return 1
 
-    print(
-        f"Report created for {result.company_ticker}: "
-        f"{result.output_path}"
-    )
+    print(f"Report created for {result.company_ticker}: {result.output_path}")
 
     return 0
 

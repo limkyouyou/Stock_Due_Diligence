@@ -59,41 +59,28 @@ def create_research_data() -> CompanyResearchData:
 
 def test_generate_markdown_report_contains_financial_summary() -> None:
     research_data = create_research_data()
-    metrics = calculate_annual_metrics(
-        research_data.annual_financials
-    )
+    metrics = calculate_annual_metrics(research_data.annual_financials)
 
     report = generate_markdown_report(
         research_data,
         metrics,
     )
 
-    assert (
-        "# Stock Due-Diligence Report: "
-        "Northstar Robotics Inc. (NSTR)"
-    ) in report
+    assert ("# Stock Due-Diligence Report: Northstar Robotics Inc. (NSTR)") in report
 
-    assert (
-        "| 2025 | USD 160,000,000 | 15.94% "
-        "| 11.25% | USD 17,000,000 |"
-    ) in report
+    assert ("| 2025 | USD 160,000,000 | 15.94% | 11.25% | USD 17,000,000 |") in report
 
     assert "## Scope and Limitations" in report
     assert "buy or sell recommendation" in report
 
 
 def test_save_markdown_report_creates_output_directory(
-        tmp_path: Path,
+    tmp_path: Path,
 ) -> None:
     output_path = tmp_path / "nested" / "report.md"
 
-    saved_path = save_markdown_report(
-        "# Test Report\n",
-        output_path
-    )
+    saved_path = save_markdown_report("# Test Report\n", output_path)
 
     assert saved_path == output_path
     assert output_path.exists()
-    assert output_path.read_text(
-        encoding="utf-8"
-    ) == "# Test Report\n"
+    assert output_path.read_text(encoding="utf-8") == "# Test Report\n"

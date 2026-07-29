@@ -1,8 +1,8 @@
 """Test for loading and validating reserach data."""
 
+import json
 from copy import deepcopy
 from datetime import date
-import json
 from pathlib import Path
 from typing import Any
 
@@ -54,8 +54,8 @@ def valid_payload() -> dict[str, Any]:
 
 
 def write_json_file(
-        tmp_path: Path,
-        payload: Any,
+    tmp_path: Path,
+    payload: Any,
 ) -> Path:
     """Write JSON test data to a temporary file."""
     file_path = tmp_path / "research_data.json"
@@ -68,8 +68,8 @@ def write_json_file(
 
 
 def test_load_research_data_converts_and_sorts_values(
-        tmp_path: Path,
-        valid_payload: dict[str, Any],
+    tmp_path: Path,
+    valid_payload: dict[str, Any],
 ) -> None:
     file_path = write_json_file(tmp_path, valid_payload)
 
@@ -80,13 +80,16 @@ def test_load_research_data_converts_and_sorts_values(
     assert result.company.ticker == "NSTR"
     assert result.company.name == "Northstar Robotics Inc."
 
-    assert [financial.fiscal_year for financial in result.annual_financials] == [2024, 2025]
+    assert [financial.fiscal_year for financial in result.annual_financials] == [
+        2024,
+        2025,
+    ]
 
     assert isinstance(result.annual_financials, tuple)
 
 
 def test_missing_file_raises_research_data_error(
-        tmp_path: Path,
+    tmp_path: Path,
 ) -> None:
     missing_file = tmp_path / "missing.json"
 
@@ -98,7 +101,7 @@ def test_missing_file_raises_research_data_error(
 
 
 def test_invalid_json_raises_research_data_error(
-        tmp_path: Path,
+    tmp_path: Path,
 ) -> None:
     file_path = tmp_path / "invalid.json"
     file_path.write_text(
@@ -114,8 +117,8 @@ def test_invalid_json_raises_research_data_error(
 
 
 def test_missing_required_field_raises_error(
-        tmp_path: Path,
-        valid_payload: dict[str, Any],
+    tmp_path: Path,
+    valid_payload: dict[str, Any],
 ) -> None:
     payload = deepcopy(valid_payload)
     del payload["company"]["ticker"]
@@ -130,8 +133,8 @@ def test_missing_required_field_raises_error(
 
 
 def test_incorrect_field_type_raises_error(
-        tmp_path: Path,
-        valid_payload: dict[str, Any],
+    tmp_path: Path,
+    valid_payload: dict[str, Any],
 ) -> None:
     payload = deepcopy(valid_payload)
     payload["annual_financials"][0]["revenue"] = "160 million"
@@ -146,8 +149,8 @@ def test_incorrect_field_type_raises_error(
 
 
 def test_duplicate_fiscal_years_raise_error(
-        tmp_path: Path,
-        valid_payload: dict[str, Any],
+    tmp_path: Path,
+    valid_payload: dict[str, Any],
 ) -> None:
     payload = deepcopy(valid_payload)
 
@@ -164,8 +167,8 @@ def test_duplicate_fiscal_years_raise_error(
 
 
 def test_empty_financial_records_raise_error(
-        tmp_path: Path,
-        valid_payload: dict[str, Any],
+    tmp_path: Path,
+    valid_payload: dict[str, Any],
 ) -> None:
     payload = deepcopy(valid_payload)
     payload["annual_financials"] = []

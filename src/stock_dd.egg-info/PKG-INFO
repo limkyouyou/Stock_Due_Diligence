@@ -6,6 +6,7 @@ Requires-Python: >=3.14
 Description-Content-Type: text/markdown
 Provides-Extra: dev
 Requires-Dist: pytest<10,>=9.1; extra == "dev"
+Requires-Dist: ruff<0.16,>=0.15.22; extra == "dev"
 
 # Trading DD MAS
 

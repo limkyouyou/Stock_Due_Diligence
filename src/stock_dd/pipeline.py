@@ -21,8 +21,8 @@ class PipelineResult:
 
 
 def run_offline_pipeline(
-        input_path: str | Path,
-        output_path: str | Path | None = None,
+    input_path: str | Path,
+    output_path: str | Path | None = None,
 ) -> PipelineResult:
     """Run the complete offline due-diligence workflow."""
 

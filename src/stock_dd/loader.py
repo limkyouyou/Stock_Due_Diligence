@@ -22,7 +22,7 @@ class ResearchDataError(ValueError):
 
 def load_research_data(file_path: str | Path) -> CompanyResearchData:
     """Load company reserach data from a JSON file
-    
+
     Args:
         file_path: Path to the JSON reserach file.
 
@@ -52,7 +52,8 @@ def load_research_data(file_path: str | Path) -> CompanyResearchData:
     metadata = _parse_metadata(metadata_data)
     company = _parse_company(company_data)
     annual_financials = tuple(
-        _parse_annual_financial(item, index) for index, item in enumerate(financials_data)
+        _parse_annual_financial(item, index)
+        for index, item in enumerate(financials_data)
     )
 
     if not annual_financials:
@@ -63,7 +64,10 @@ def load_research_data(file_path: str | Path) -> CompanyResearchData:
     _check_duplicate_fiscal_years(annual_financials)
 
     sorted_financials = tuple(
-        sorted(annual_financials, key=lambda financial: financial.fiscal_year,)
+        sorted(
+            annual_financials,
+            key=lambda financial: financial.fiscal_year,
+        )
     )
 
     return CompanyResearchData(
@@ -80,9 +84,7 @@ def _read_json(path: Path) -> dict[str, Any]:
         with path.open("r", encoding="utf-8") as file:
             raw_data = json.load(file)
     except FileNotFoundError as error:
-        raise ResearchDataError(
-            f"Research data file was not found: {path}"
-        ) from error
+        raise ResearchDataError(f"Research data file was not found: {path}") from error
     except PermissionError as error:
         raise ResearchDataError(
             f"Permission was denied when reading: {path}"
@@ -132,8 +134,8 @@ def _parse_company(data: dict[str, Any]) -> Company:
 
 
 def _parse_annual_financial(
-        value: Any,
-        index: Any,
+    value: Any,
+    index: Any,
 ) -> AnnualFinancial:
     """Convert one annual financial JSON record into a model."""
 
@@ -160,59 +162,49 @@ def _parse_annual_financial(
             "operating_cash_flow",
             field_path,
         ),
-        capital_expenditures=_require_integer(
-            data,
-            "capital_expenditures",
-            field_path
-        ),
+        capital_expenditures=_require_integer(data, "capital_expenditures", field_path),
     )
 
 
 def _required_value(
-        data: dict[str, Any],
-        key: str,
-        field_path: str,
+    data: dict[str, Any],
+    key: str,
+    field_path: str,
 ) -> Any:
     """Return a required value or raise a descriptive error."""
 
     if key not in data:
-        raise ResearchDataError(
-            f"Required field '{field_path}.{key}' is missing."
-        )
+        raise ResearchDataError(f"Required field '{field_path}.{key}' is missing.")
 
     return data[key]
 
 
 def _require_string(
-        data: dict[str, Any],
-        key: str,
-        field_path: str,
+    data: dict[str, Any],
+    key: str,
+    field_path: str,
 ) -> str:
     """Return a required non-empty string."""
 
     value = _required_value(data, key, field_path)
 
     if not isinstance(value, str) or not value.strip():
-        raise ResearchDataError(
-            f"'{field_path}.{key}' must be a non-empty string."
-        )
+        raise ResearchDataError(f"'{field_path}.{key}' must be a non-empty string.")
 
     return value.strip()
 
 
 def _require_integer(
-        data: dict[str, Any],
-        key: str,
-        field_path: str,
+    data: dict[str, Any],
+    key: str,
+    field_path: str,
 ) -> int:
     """Return a required integer."""
 
     value = _required_value(data, key, field_path)
 
     if isinstance(value, bool) or not isinstance(value, int):
-        raise ResearchDataError(
-            f"'{field_path}.{key}' must be an integer."
-        )
+        raise ResearchDataError(f"'{field_path}.{key}' must be an integer.")
 
     return value
 
@@ -221,9 +213,7 @@ def _require_mapping(value: Any, field_path: str) -> dict[str, Any]:
     """Ensure a value is a JSON object."""
 
     if not isinstance(value, dict):
-        raise ResearchDataError(
-            f"'{field_path}' must be a JSON object."
-        )
+        raise ResearchDataError(f"'{field_path}' must be a JSON object.")
 
     return value
 
@@ -232,26 +222,17 @@ def _require_list(value: Any, field_path: str) -> list[Any]:
     """Ensure a value is a JSON array."""
 
     if not isinstance(value, list):
-        raise ResearchDataError(
-            f"'{field_path}' must be a JSON array"
-        )
+        raise ResearchDataError(f"'{field_path}' must be a JSON array")
 
     return value
 
 
 def _check_duplicate_fiscal_years(
-        financials: tuple[AnnualFinancial, ...],
+    financials: tuple[AnnualFinancial, ...],
 ) -> None:
     """Reject datasets containing duplicate fiscal years."""
 
     fiscal_years = [financial.fiscal_year for financial in financials]
 
     if len(fiscal_years) != len(set(fiscal_years)):
-        raise ResearchDataError(
-            "'annual_financials' contains duplicate fiscal years."
-        )
-
-
-
-
-    
+        raise ResearchDataError("'annual_financials' contains duplicate fiscal years.")

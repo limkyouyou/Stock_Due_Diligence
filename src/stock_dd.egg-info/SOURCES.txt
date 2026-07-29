@@ -2,10 +2,17 @@ README.md
 pyproject.toml
 src/stock_dd/__init__.py
 src/stock_dd/__main__.py
+src/stock_dd/calculations.py
 src/stock_dd/loader.py
 src/stock_dd/models.py
+src/stock_dd/pipeline.py
+src/stock_dd/report.py
 src/stock_dd.egg-info/PKG-INFO
 src/stock_dd.egg-info/SOURCES.txt
 src/stock_dd.egg-info/dependency_links.txt
 src/stock_dd.egg-info/requires.txt
 src/stock_dd.egg-info/top_level.txt
+tests/test_calculations.py
+tests/test_loader.py
+tests/test_pipeline.py
+tests/test_report.py

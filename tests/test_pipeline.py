@@ -4,18 +4,12 @@ from pathlib import Path
 
 from stock_dd.pipeline import run_offline_pipeline
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-SAMPLE_FILE = (
-    PROJECT_ROOT
-    / "data"
-    / "samples"
-    / "northstar_robotics.json"
-)
+SAMPLE_FILE = PROJECT_ROOT / "data" / "samples" / "northstar_robotics.json"
 
 
 def test_run_offline_pipeline_creates_report(
-        tmp_path: Path,
+    tmp_path: Path,
 ) -> None:
     output_path = tmp_path / "northstar_report.md"
 
