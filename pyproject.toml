@@ -56,3 +56,4 @@ source = ["stock-dd"]
 show_missing = true
 skip_covered = true
 precision = 2
+fail_under = 90
