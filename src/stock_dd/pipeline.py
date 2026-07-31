@@ -10,6 +10,10 @@ from stock_dd.report import (
     save_markdown_report,
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass(frozen=True, slots=True)
 class PipelineResult:
@@ -28,7 +32,18 @@ def run_offline_pipeline(
 
     source_path = Path(input_path)
 
+    logger.info(
+        "Starting offline pipeline: input=%s",
+        source_path,
+    )
+
     research_data = load_research_data(source_path)
+
+    logger.info(
+        "Loaded research data: ticker=%s, fiscal_years=%d",
+        research_data.company.ticker,
+        len(research_data.annual_financials),
+    )
 
     metrics = calculate_annual_metrics(research_data.annual_financials)
 
@@ -49,6 +64,11 @@ def run_offline_pipeline(
     saved_path = save_markdown_report(
         report,
         destination_path,
+    )
+
+    logger.info(
+        "Saved due-diligence report: output=%s",
+        saved_path,
     )
 
     return PipelineResult(

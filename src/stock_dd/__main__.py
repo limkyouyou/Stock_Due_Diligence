@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 from stock_dd.exceptions import ResearchDataError
+from stock_dd.logging_config import configure_logging
 from stock_dd.pipeline import run_offline_pipeline
 
 
@@ -31,6 +32,10 @@ def build_parser() -> argparse.ArgumentParser:
         help=("Optional report output path. Defaults to the reports directory."),
     )
 
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Show application progress logs."
+    )
+
     return parser
 
 
@@ -39,6 +44,8 @@ def main() -> int:
 
     parser = build_parser()
     arguments = parser.parse_args()
+
+    configure_logging(verbose=arguments.verbose)
 
     try:
         result = run_offline_pipeline(
