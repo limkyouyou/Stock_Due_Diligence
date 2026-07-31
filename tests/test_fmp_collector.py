@@ -9,7 +9,6 @@ from stock_dd.collectors.base import FinancialDataCollector
 from stock_dd.collectors.fmp import FMPFinancialDataCollector
 from stock_dd.exceptions import CollectorError, ConfigurationError
 
-
 FIXED_COLLECTION_TIME = datetime(
     2026,
     7,

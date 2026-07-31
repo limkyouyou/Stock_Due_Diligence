@@ -1,8 +1,8 @@
 """Collect raw company and financial-statement data from FMP."""
 
+import logging
 from collections.abc import Callable
 from datetime import UTC, datetime
-import logging
 from typing import Final
 
 import httpx
@@ -10,7 +10,6 @@ import httpx
 from stock_dd import __version__
 from stock_dd.collectors.base import RawFinancialDataset
 from stock_dd.exceptions import CollectorError, ConfigurationError
-
 
 logger = logging.getLogger(__name__)
 
