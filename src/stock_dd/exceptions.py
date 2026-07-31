@@ -11,3 +11,7 @@ class ResearchDataError(StockDDError):
 
 class ConfigurationError(StockDDError):
     """Raised when required application configuration is invalid or missing."""
+
+
+class CollectorError(StockDDError):
+    """Raised when an external data collector cannot complete its work."""
