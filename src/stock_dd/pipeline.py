@@ -1,5 +1,6 @@
 """Coordinate the offline stock due-diligence pipeline"""
 
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -9,8 +10,6 @@ from stock_dd.report import (
     generate_markdown_report,
     save_markdown_report,
 )
-
-import logging
 
 logger = logging.getLogger(__name__)
 

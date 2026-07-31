@@ -3,7 +3,6 @@
 import logging
 import sys
 
-
 _LOG_FORMAT = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
 
 
