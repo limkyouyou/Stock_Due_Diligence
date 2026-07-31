@@ -7,3 +7,7 @@ class StockDDError(Exception):
 
 class ResearchDataError(StockDDError):
     """Raised when research data cannot be loaded or validated."""
+
+
+class ConfigurationError(StockDDError):
+    """Raised when required application configuration is invalid or missing."""
