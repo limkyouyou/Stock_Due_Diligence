@@ -25,3 +25,6 @@ htmlcov/
 # Generated reports
 reports/*
 !reports/.gitkeep
+
+# Collected provider data
+data/raw/

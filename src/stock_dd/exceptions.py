@@ -15,3 +15,7 @@ class ConfigurationError(StockDDError):
 
 class CollectorError(StockDDError):
     """Raised when an external data collector cannot complete its work."""
+
+
+class RawDataStorageError(StockDDError):
+    """Raised when raw provider data cannot be stored safely."""
