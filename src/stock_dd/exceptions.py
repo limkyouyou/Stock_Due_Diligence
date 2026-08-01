@@ -19,3 +19,7 @@ class CollectorError(StockDDError):
 
 class RawDataStorageError(StockDDError):
     """Raised when raw provider data cannot be stored safely."""
+
+
+class NormalizationError(StockDDError):
+    """Raised when provider data cannot be normalized safely."""
