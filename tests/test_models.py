@@ -641,3 +641,13 @@ def test_executive_company_event_requires_related_executive() -> None:
             announced_on=date(2026, 6, 15),
             citations=(citation,),
         )
+
+
+def test_public_model_api_uses_split_model_modules() -> None:
+    assert CompanyIdentity.__module__ == "stock_dd.models.company"
+    assert EvidenceSource.__module__ == "stock_dd.models.evidence"
+    assert CandidateEvidence.__module__ == "stock_dd.models.evidence"
+    assert Executive.__module__ == "stock_dd.models.executives"
+    assert ExecutiveRole.__module__ == "stock_dd.models.executives"
+    assert CareerPosition.__module__ == "stock_dd.models.executives"
+    assert CompanyEvent.__module__ == "stock_dd.models.events"
