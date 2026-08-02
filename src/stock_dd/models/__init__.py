@@ -21,6 +21,10 @@ from stock_dd.models.evidence import EvidenceSource as EvidenceSource
 from stock_dd.models.evidence import EvidenceSourceType as EvidenceSourceType
 from stock_dd.models.evidence import ExtractionMethod as ExtractionMethod
 from stock_dd.models.evidence import VerificationStatus as VerificationStatus
+from stock_dd.models.executives import CareerPosition as CareerPosition
+from stock_dd.models.executives import Executive as Executive
+from stock_dd.models.executives import ExecutiveRole as ExecutiveRole
+from stock_dd.models.executives import ExecutiveRoleType as ExecutiveRoleType
 from stock_dd.models.identifiers import (
     CandidateEvidenceId as CandidateEvidenceId,
 )
@@ -32,64 +36,12 @@ from stock_dd.models.identifiers import ExecutiveId as ExecutiveId
 from stock_dd.models.identifiers import ExecutiveRoleId as ExecutiveRoleId
 
 
-class ExecutiveRoleType(StrEnum):
-    """Normalized categories for company executive roles."""
-
-    CHIEF_EXECUTIVE_OFFICER = "chief_executive_officer"
-    CHIEF_FINANCIAL_OFFICER = "chief_financial_officer"
-    PRESIDENT = "president"
-    CHIEF_OPERATING_OFFICER = "chief_operating_officer"
-    EXECUTIVE_CHAIR = "executive_chair"
-    OTHER_EXECUTIVE_OFFICER = "other_executive_officer"
-
-
 class CompanyEventType(StrEnum):
     """Supported categories of company events."""
 
     EXECUTIVE_APPOINTMENT = "executive_appointment"
     EXECUTIVE_DEPARTURE = "executive_departure"
     EXECUTIVE_ROLE_CHANGE = "executive_role_change"
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class Executive:
-    """A uniquely identified company executive."""
-
-    executive_id: ExecutiveId
-    full_name: str
-    citations: tuple[EvidenceCitation, ...]
-    alternate_names: tuple[str, ...] = ()
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class ExecutiveRole:
-    """An executive's leadership role at a company."""
-
-    role_id: ExecutiveRoleId
-    company_id: CompanyId
-    executive_id: ExecutiveId
-    role_type: ExecutiveRoleType
-    reported_title: str
-    citations: tuple[EvidenceCitation, ...]
-    started_on: PartialDate | None = None
-    ended_on: PartialDate | None = None
-    appointment_announced_on: date | None = None
-    departure_announced_on: date | None = None
-    is_interim: bool = False
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class CareerPosition:
-    """A disclosed position in an executive's employment history."""
-
-    position_id: CareerPositionId
-    executive_id: ExecutiveId
-    employer_name: str
-    reported_title: str
-    citations: tuple[EvidenceCitation, ...]
-    employer_company_id: CompanyId | None = None
-    started_on: PartialDate | None = None
-    ended_on: PartialDate | None = None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
