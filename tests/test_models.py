@@ -2,16 +2,23 @@
 
 from datetime import UTC, date, datetime
 
+import pytest
+
 from stock_dd.models import (
     CompanyId,
     CompanyIdentity,
     CompanyListing,
+    DatePrecision,
     EvidenceCitation,
     EvidenceSource,
     EvidenceSourceId,
     EvidenceSourceType,
     Executive,
     ExecutiveId,
+    ExecutiveRole,
+    ExecutiveRoleId,
+    ExecutiveRoleType,
+    PartialDate,
 )
 
 
@@ -35,7 +42,7 @@ def test_company_identity_uses_stable_internal_identifier() -> None:
 def test_company_identity_has_safe_defaults() -> None:
     identity = CompanyIdentity(
         company_id=CompanyId("company-example"),
-        legal_name="Example Corporatino",
+        legal_name="Example Corporation",
         cik="0000000001",
     )
 
@@ -165,7 +172,7 @@ def test_executive_ids_distinguish_people_with_the_same_name() -> None:
     )
 
     first_executive = Executive(
-        executive_id=ExecutiveId("executive_alex_kim_1"),
+        executive_id=ExecutiveId("executive-alex-kim-1"),
         full_name="Alex Kim",
         citations=(citation,),
     )
@@ -177,3 +184,88 @@ def test_executive_ids_distinguish_people_with_the_same_name() -> None:
 
     assert first_executive.full_name == second_executive.full_name
     assert first_executive.executive_id != second_executive.executive_id
+
+
+def test_partial_date_preserves_available_precision() -> None:
+    year_only = PartialDate(year=2019)
+    year_and_month = PartialDate(year=2011, month=8)
+    complete_date = PartialDate(year=2025, month=3, day=1)
+
+    assert year_only.precision is DatePrecision.YEAR
+    assert year_only.month is None
+    assert year_only.day is None
+
+    assert year_and_month.precision is DatePrecision.MONTH
+    assert year_and_month.month == 8
+    assert year_and_month.day is None
+
+    assert complete_date.precision is DatePrecision.DAY
+    assert complete_date.month == 3
+    assert complete_date.day == 1
+
+
+def test_partial_date_rejects_day_wihtout_month() -> None:
+    with pytest.raises(
+        ValueError,
+        match="month is required when day is provided",
+    ):
+        PartialDate(year=2024, day=1)
+
+
+def test_partial_date_rejects_invalid_calendar_date() -> None:
+    with pytest.raises(ValueError):
+        PartialDate(year=2025, month=2, day=30)
+
+
+def test_executive_role_connects_executive_to_company() -> None:
+    citation = EvidenceCitation(
+        source_id=EvidenceSourceId("source-example-appointment"),
+        supporting_excerpt=(
+            "Jane Smith was appointed Chief Executive Officer effective March 1, 2025."
+        ),
+        location="Executive appointment",
+    )
+
+    role = ExecutiveRole(
+        role_id=ExecutiveRoleId("role-jane-smith-example-ceo"),
+        company_id=CompanyId("company-example"),
+        executive_id=ExecutiveId("executive-jane-smith"),
+        role_type=ExecutiveRoleType.CHIEF_EXECUTIVE_OFFICER,
+        reported_title="President and Chief Executive Officer",
+        started_on=PartialDate(year=2025, month=3, day=1),
+        appointment_announced_on=date(2025, 2, 10),
+        citations=(citation,),
+    )
+
+    assert role.company_id == CompanyId("company-example")
+    assert role.executive_id == ExecutiveId("executive-jane-smith")
+    assert role.role_type is ExecutiveRoleType.CHIEF_EXECUTIVE_OFFICER
+    assert role.reported_title == "President and Chief Executive Officer"
+    assert role.started_on == PartialDate(year=2025, month=3, day=1)
+    assert role.ended_on is None
+    assert role.appointment_announced_on == date(2025, 2, 10)
+    assert role.departure_announced_on is None
+    assert role.is_interim is False
+    assert role.citations == (citation,)
+
+
+def test_executive_role_supports_partial_dates_and_interim_roles() -> None:
+    citation = EvidenceCitation(
+        source_id=EvidenceSourceId("source-example-interim-cfo"),
+        location="Executive officers",
+    )
+
+    role = ExecutiveRole(
+        role_id=ExecutiveRoleId("role-example-interim-cfo"),
+        company_id=CompanyId("company-example"),
+        executive_id=ExecutiveId("executive-example"),
+        role_type=ExecutiveRoleType.CHIEF_FINANCIAL_OFFICER,
+        reported_title="Interim Chief Financial Officer",
+        started_on=PartialDate(year=2024, month=7),
+        citations=(citation,),
+        is_interim=True,
+    )
+
+    assert role.started_on == PartialDate(year=2024, month=7)
+    assert role.started_on.precision is DatePrecision.MONTH
+    assert role.is_interim is True
