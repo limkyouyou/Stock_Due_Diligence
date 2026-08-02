@@ -9,6 +9,7 @@ CompanyId = NewType("CompanyId", str)
 EvidenceSourceId = NewType("EvidenceSourceId", str)
 ExecutiveId = NewType("ExecutiveId", str)
 ExecutiveRoleId = NewType("ExecutiveRoleId", str)
+CareerPositionId = NewType("CareerPositionId", str)
 
 
 class EvidenceSourceType(StrEnum):
@@ -156,6 +157,20 @@ class ExecutiveRole:
     appointment_announced_on: date | None = None
     departure_announced_on: date | None = None
     is_interim: bool = False
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class CareerPosition:
+    """A disclosed position in an executive's employment history."""
+
+    position_id: CareerPositionId
+    executive_id: ExecutiveId
+    employer_name: str
+    reported_title: str
+    citations: tuple[EvidenceCitation, ...]
+    employer_company_id: CompanyId | None = None
+    started_on: PartialDate | None = None
+    ended_on: PartialDate | None = None
 
 
 @dataclass(frozen=True, slots=True)

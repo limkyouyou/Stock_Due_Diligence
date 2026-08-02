@@ -5,6 +5,8 @@ from datetime import UTC, date, datetime
 import pytest
 
 from stock_dd.models import (
+    CareerPosition,
+    CareerPositionId,
     CompanyId,
     CompanyIdentity,
     CompanyListing,
@@ -269,3 +271,87 @@ def test_executive_role_supports_partial_dates_and_interim_roles() -> None:
     assert role.started_on == PartialDate(year=2024, month=7)
     assert role.started_on.precision is DatePrecision.MONTH
     assert role.is_interim is True
+
+
+def test_career_position_preserves_employment_history() -> None:
+    citation = EvidenceCitation(
+        source_id=EvidenceSourceId("source-example-biography"),
+        supporting_excerpt=(
+            "Before joining the company, Jane Smith served as "
+            "Chief Operating Officer of Example Corporation "
+            "from 2019 to 2024."
+        ),
+        location="Executive biography = Jane Smith",
+    )
+
+    position = CareerPosition(
+        position_id=CareerPositionId("career-jane-smith-example-corporation-coo"),
+        executive_id=ExecutiveId("executive-jane-smith"),
+        employer_company_id=CompanyId("company-example"),
+        employer_name="Example Corporation",
+        reported_title="Chief Operating Officer",
+        started_on=PartialDate(year=2019),
+        ended_on=PartialDate(year=2024),
+        citations=(citation,),
+    )
+
+    assert position.position_id == CareerPositionId(
+        "career-jane-smith-example-corporation-coo"
+    )
+    assert position.executive_id == ExecutiveId("executive-jane-smith")
+    assert position.employer_company_id == CompanyId("company-example")
+    assert position.employer_name == "Example Corporation"
+    assert position.reported_title == "Chief Operating Officer"
+    assert position.started_on == PartialDate(year=2019)
+    assert position.ended_on == PartialDate(year=2024)
+    assert position.citations == (citation,)
+
+
+def test_career_position_supports_unresolved_employer() -> None:
+    citation = EvidenceCitation(
+        source_id=EvidenceSourceId("source-example-leadership-page"),
+        location="Professional experience",
+    )
+
+    position = CareerPosition(
+        position_id=CareerPositionId("career-example-private-company"),
+        executive_id=ExecutiveId("executive-example"),
+        employer_name="Private Technology Group",
+        reported_title="Vice President of Finance",
+        started_on=PartialDate(year=2020, month=6),
+        citations=(citation,),
+    )
+
+    assert position.employer_company_id is None
+    assert position.started_on == PartialDate(year=2020, month=6)
+    assert position.started_on.precision is DatePrecision.MONTH
+    assert position.ended_on is None
+
+
+def test_career_position_ids_distinguish_roles_at_same_employer() -> None:
+    citation = EvidenceCitation(
+        source_id=EvidenceSourceId("source-example-biography"),
+        location="Executive biography",
+    )
+
+    first_position = CareerPosition(
+        position_id=CareerPositionId("career-example-vice-president"),
+        executive_id=ExecutiveId("executive-example"),
+        employer_name="Example Corporation",
+        reported_title="Vice President",
+        ended_on=PartialDate(year=2022),
+        citations=(citation,),
+    )
+
+    second_position = CareerPosition(
+        position_id=CareerPositionId("career-example-president"),
+        executive_id=ExecutiveId("executive-example"),
+        employer_name="Example Corporation",
+        reported_title="President",
+        ended_on=PartialDate(year=2022),
+        citations=(citation,),
+    )
+
+    assert first_position.executive_id == second_position.executive_id
+    assert first_position.employer_name == second_position.employer_name
+    assert first_position.position_id != second_position.position_id
