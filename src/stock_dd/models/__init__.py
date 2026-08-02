@@ -3,15 +3,18 @@
 from dataclasses import dataclass
 from datetime import date, datetime
 from enum import StrEnum
-from typing import NewType
 
-CompanyId = NewType("CompanyId", str)
-EvidenceSourceId = NewType("EvidenceSourceId", str)
-ExecutiveId = NewType("ExecutiveId", str)
-ExecutiveRoleId = NewType("ExecutiveRoleId", str)
-CareerPositionId = NewType("CareerPositionId", str)
-CandidateEvidenceId = NewType("CandidateEvidenceId", str)
-CompanyEventId = NewType("CompanyEventId", str)
+from stock_dd.models.dates import DatePrecision as DatePrecision
+from stock_dd.models.dates import PartialDate as PartialDate
+from stock_dd.models.identifiers import (
+    CandidateEvidenceId as CandidateEvidenceId,
+)
+from stock_dd.models.identifiers import CareerPositionId as CareerPositionId
+from stock_dd.models.identifiers import CompanyEventId as CompanyEventId
+from stock_dd.models.identifiers import CompanyId as CompanyId
+from stock_dd.models.identifiers import EvidenceSourceId as EvidenceSourceId
+from stock_dd.models.identifiers import ExecutiveId as ExecutiveId
+from stock_dd.models.identifiers import ExecutiveRoleId as ExecutiveRoleId
 
 
 class EvidenceSourceType(StrEnum):
@@ -26,14 +29,6 @@ class EvidenceSourceType(StrEnum):
     PROFESSIONAL_PROFILE = "professional_profile"
     DISCOVERY_SOURCE = "discovery_source"
     OTHER = "other"
-
-
-class DatePrecision(StrEnum):
-    """Precision available for a partially known date."""
-
-    YEAR = "year"
-    MONTH = "month"
-    DAY = "day"
 
 
 class ExecutiveRoleType(StrEnum):
@@ -100,45 +95,9 @@ class VerificationStatus(StrEnum):
 class CompanyEventType(StrEnum):
     """Supported categories of company events."""
 
-    EXECUTIVE_APPOINTMENT = "executive_appointement"
+    EXECUTIVE_APPOINTMENT = "executive_appointment"
     EXECUTIVE_DEPARTURE = "executive_departure"
     EXECUTIVE_ROLE_CHANGE = "executive_role_change"
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class PartialDate:
-    """A calendar date whose month or day may be unknown."""
-
-    year: int
-    month: int | None = None
-    day: int | None = None
-
-    def __post_init__(self) -> None:
-        """Ensure the supplied date components form a valid partial date."""
-
-        if self.month is None:
-            if self.day is not None:
-                raise ValueError("month is required when day is provided")
-            date(self.year, 1, 1)
-            return
-
-        if self.day is None:
-            date(self.year, self.month, 1)
-            return
-
-        date(self.year, self.month, self.day)
-
-    @property
-    def precision(self) -> DatePrecision:
-        """Return the precision supported by the available components."""
-
-        if self.month is None:
-            return DatePrecision.YEAR
-
-        if self.day is None:
-            return DatePrecision.MONTH
-
-        return DatePrecision.DAY
 
 
 type CandidateValue = str | int | float | bool | date | PartialDate
@@ -251,7 +210,7 @@ class CompanyEvent:
     related_role_ids: tuple[ExecutiveRoleId, ...] = ()
 
     def __post_init__(self) -> None:
-        """Ensure the evnet has enough temporal and subject information."""
+        """Ensure the event has enough temporal and subject information."""
 
         if self.announced_on is None and self.occurred_on is None:
             raise ValueError(
