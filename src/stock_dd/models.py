@@ -11,6 +11,7 @@ ExecutiveId = NewType("ExecutiveId", str)
 ExecutiveRoleId = NewType("ExecutiveRoleId", str)
 CareerPositionId = NewType("CareerPositionId", str)
 CandidateEvidenceId = NewType("CandidateEvidenceId", str)
+CompanyEventId = NewType("CompanyEventId", str)
 
 
 class EvidenceSourceType(StrEnum):
@@ -63,7 +64,7 @@ class CandidateClaimType(StrEnum):
     COMPANY_LEGAL_NAME = "company_legal_name"
     COMPANY_CIK = "company_cik"
     EXECUTIVE_FULL_NAME = "executive_full_name"
-    EXECUTIVE_ALTERNATE_NAME = "executive_alternative_name"
+    EXECUTIVE_ALTERNATE_NAME = "executive_alternate_name"
     EXECUTIVE_ROLE_TITLE = "executive_role_title"
     EXECUTIVE_ROLE_START_DATE = "executive_role_start_date"
     EXECUTIVE_ROLE_END_DATE = "executive_role_end_date"
@@ -94,6 +95,14 @@ class VerificationStatus(StrEnum):
     MULTIPLE_SOURCE_CONFIRMED = "multiple_source_confirmed"
     DISPUTED = "disputed"
     REJECTED = "rejected"
+
+
+class CompanyEventType(StrEnum):
+    """Supported categories of company events."""
+
+    EXECUTIVE_APPOINTMENT = "executive_appointement"
+    EXECUTIVE_DEPARTURE = "executive_departure"
+    EXECUTIVE_ROLE_CHANGE = "executive_role_change"
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -225,6 +234,32 @@ class CareerPosition:
     employer_company_id: CompanyId | None = None
     started_on: PartialDate | None = None
     ended_on: PartialDate | None = None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class CompanyEvent:
+    """A dated company occurrence supported by research evidence."""
+
+    event_id: CompanyEventId
+    company_id: CompanyId
+    event_type: CompanyEventType
+    description: str
+    citations: tuple[EvidenceCitation, ...]
+    announced_on: date | None = None
+    occurred_on: PartialDate | None = None
+    related_executive_ids: tuple[ExecutiveId, ...] = ()
+    related_role_ids: tuple[ExecutiveRoleId, ...] = ()
+
+    def __post_init__(self) -> None:
+        """Ensure the evnet has enough temporal and subject information."""
+
+        if self.announced_on is None and self.occurred_on is None:
+            raise ValueError(
+                "company event requires an announcement or occurrence date"
+            )
+
+        if not self.related_executive_ids:
+            raise ValueError("executive company event requires a related executive")
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

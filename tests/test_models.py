@@ -11,6 +11,9 @@ from stock_dd.models import (
     CandidateSubjectType,
     CareerPosition,
     CareerPositionId,
+    CompanyEvent,
+    CompanyEventId,
+    CompanyEventType,
     CompanyId,
     CompanyIdentity,
     CompanyListing,
@@ -395,7 +398,7 @@ def test_candidate_evidence_preserves_unverified_claim() -> None:
 
 def test_candidate_evidence_supports_unresolved_subject_and_partial_date() -> None:
     citation = EvidenceCitation(
-        source_id=EvidenceSourceId("surce-example-filing"),
+        source_id=EvidenceSourceId("source-example-filing"),
         location="Executive officers",
     )
 
@@ -507,4 +510,134 @@ def test_non_rejected_candidate_cannot_have_rejection_reson() -> None:
             extraction_method=ExtractionMethod.MANUAL_RESEARCH,
             extracted_at=datetime(2026, 8, 2, 19, 0, tzinfo=UTC),
             rejection_reason="This should not be present.",
+        )
+
+
+def test_company_event_records_executive_appointment() -> None:
+    citation = EvidenceCitation(
+        source_id=EvidenceSourceId("source-example-appointment"),
+        supporting_excerpt=(
+            "Jane Smith was appointed Chief Executive Officer effective March 1, 2025."
+        ),
+        location="Executive appointment",
+    )
+
+    event = CompanyEvent(
+        event_id=CompanyEventId("event-jane-smith-example-ceo-appointment"),
+        company_id=CompanyId("company-example"),
+        event_type=CompanyEventType.EXECUTIVE_APPOINTMENT,
+        description=("Jane Smith was appointed Chief Executive Officer."),
+        announced_on=date(2025, 2, 10),
+        occurred_on=PartialDate(year=2025, month=3, day=1),
+        related_executive_ids=(ExecutiveId("executive-jane-smith"),),
+        related_role_ids=(ExecutiveRoleId("role-jane-smith-example-ceo"),),
+        citations=(citation,),
+    )
+
+    assert event.company_id == CompanyId("company-example")
+    assert event.event_type is CompanyEventType.EXECUTIVE_APPOINTMENT
+    assert event.announced_on == date(2025, 2, 10)
+    assert event.occurred_on == PartialDate(year=2025, month=3, day=1)
+    assert event.related_executive_ids == (ExecutiveId("executive-jane-smith"),)
+    assert event.related_role_ids == (ExecutiveRoleId("role-jane-smith-example-ceo"),)
+    assert event.citations == (citation,)
+
+
+def test_company_event_allows_unknown_occurence_date() -> None:
+    citation = EvidenceCitation(
+        source_id=EvidenceSourceId("source-example-departure"),
+        supporting_excerpt=(
+            "The company announced that Jane Smith would leave "
+            "her position as Chief Financial Officer."
+        ),
+        location="Executive departure",
+    )
+
+    event = CompanyEvent(
+        event_id=CompanyEventId(
+            "event-jane-smith-example-cfo-departure",
+        ),
+        company_id=CompanyId("company-example"),
+        event_type=CompanyEventType.EXECUTIVE_DEPARTURE,
+        description=(
+            "The company announced Jane Smith's departure as Chief Financial Officer."
+        ),
+        announced_on=date(2026, 6, 15),
+        related_executive_ids=(ExecutiveId("executive-jane-smith"),),
+        citations=(citation,),
+    )
+
+    assert event.announced_on == date(2026, 6, 15)
+    assert event.occurred_on is None
+    assert event.related_role_ids == ()
+
+
+def test_company_event_connects_role_change_to_multiple_roles() -> None:
+    citation = EvidenceCitation(
+        source_id=EvidenceSourceId("source-example-role-change"),
+        location="Leadership transition",
+    )
+
+    event = CompanyEvent(
+        event_id=CompanyEventId("event-jane-smith-role-change"),
+        company_id=CompanyId("company-example"),
+        event_type=CompanyEventType.EXECUTIVE_ROLE_CHANGE,
+        description=(
+            "Jane Smith transitioned from Chief Operating Officer "
+            "to Chief Executive Officer."
+        ),
+        occurred_on=PartialDate(year=2025, month=3),
+        related_executive_ids=(ExecutiveId("executive-jane-smith"),),
+        related_role_ids=(
+            ExecutiveRoleId("role-jane-smith-example-coo"),
+            ExecutiveRoleId("role-jane-smith-example-ceo"),
+        ),
+        citations=(citation,),
+    )
+
+    assert event.announced_on is None
+    assert event.occurred_on == PartialDate(year=2025, month=3)
+    assert event.related_role_ids == (
+        ExecutiveRoleId("role-jane-smith-example-coo"),
+        ExecutiveRoleId("role-jane-smith-example-ceo"),
+    )
+
+
+def test_company_event_requires_temporal_information() -> None:
+    citation = EvidenceCitation(
+        source_id=EvidenceSourceId("source-example"),
+        location="Executive officers",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=("company event requires an announcement or occurrence date"),
+    ):
+        CompanyEvent(
+            event_id=CompanyEventId("event-missing-date"),
+            company_id=CompanyId("company-example"),
+            event_type=CompanyEventType.EXECUTIVE_APPOINTMENT,
+            description="Jane Smith was appointed CEO.",
+            related_executive_ids=(ExecutiveId("executive_jane-smith"),),
+            citations=(citation,),
+        )
+
+
+def test_executive_company_event_requires_related_executive() -> None:
+    citation = EvidenceCitation(
+        source_id=EvidenceSourceId("source-example"),
+        location="Executive officers",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="executive company event requires a related executive",
+    ):
+        CompanyEvent(
+            event_id=CompanyEventId("event-missing-executive"),
+            company_id=CompanyId("company-example"),
+            event_type=CompanyEventType.EXECUTIVE_DEPARTURE,
+            description="The chief Financial Officer departed.",
+            announced_on=date(2026, 6, 15),
+            citations=(citation,),
         )
