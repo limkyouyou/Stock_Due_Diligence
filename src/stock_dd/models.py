@@ -2,6 +2,33 @@
 
 from dataclasses import dataclass
 from datetime import date
+from typing import NewType
+
+CompanyId = NewType("CompanyId", str)
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class CompanyIdentity:
+    """Stable identifying information for a legal company."""
+
+    company_id: CompanyId
+    legal_name: str
+    cik: str
+    is_active: bool = True
+    alternate_names: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class CompanyListing:
+    """A publicly traded security listing associated with a company."""
+
+    company_id: CompanyId
+    ticker: str
+    exchange: str
+    security_name: str | None = None
+    valid_from: date | None = None
+    valid_to: date | None = None
+    is_active: bool = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -14,8 +41,8 @@ class ResearchMetadata:
 
 
 @dataclass(frozen=True, slots=True)
-class Company:
-    """Basic identifying informationi about a company."""
+class CompanyProfile:
+    """Description profile information for a company."""
 
     ticker: str
     name: str
@@ -43,5 +70,5 @@ class CompanyResearchData:
     """Complete normalized reserach input for one company."""
 
     metadata: ResearchMetadata
-    company: Company
+    company: CompanyProfile
     annual_financials: tuple[AnnualFinancial, ...]

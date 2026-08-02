@@ -6,7 +6,7 @@ from pathlib import Path
 from stock_dd.calculations import calculate_annual_metrics
 from stock_dd.models import (
     AnnualFinancial,
-    Company,
+    CompanyProfile,
     CompanyResearchData,
     ResearchMetadata,
 )
@@ -25,7 +25,7 @@ def create_research_data() -> CompanyResearchData:
             currency="USD",
             source="Report test data",
         ),
-        company=Company(
+        company=CompanyProfile(
             ticker="NSTR",
             name="Northstar Robotics Inc.",
             sector="Industrials",

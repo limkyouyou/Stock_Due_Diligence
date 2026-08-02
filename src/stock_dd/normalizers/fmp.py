@@ -8,7 +8,7 @@ from stock_dd.collectors.base import RawFinancialDataset
 from stock_dd.exceptions import NormalizationError
 from stock_dd.models import (
     AnnualFinancial,
-    Company,
+    CompanyProfile,
     CompanyResearchData,
     ResearchMetadata,
 )
@@ -152,7 +152,7 @@ def normalize_fmp_dataset(
             currency=currency,
             source="Financial Modeling Prep",
         ),
-        company=Company(
+        company=CompanyProfile(
             ticker=ticker,
             name=_require_string(
                 profile,

@@ -11,7 +11,7 @@ from typing import Any
 from stock_dd.exceptions import ResearchDataError
 from stock_dd.models import (
     AnnualFinancial,
-    Company,
+    CompanyProfile,
     CompanyResearchData,
     ResearchMetadata,
 )
@@ -118,10 +118,10 @@ def _parse_metadata(data: dict[str, Any]) -> ResearchMetadata:
     )
 
 
-def _parse_company(data: dict[str, Any]) -> Company:
+def _parse_company(data: dict[str, Any]) -> CompanyProfile:
     """Convert company JSON into a Company object."""
 
-    return Company(
+    return CompanyProfile(
         ticker=_require_string(data, "ticker", "company").upper(),
         name=_require_string(data, "name", "company"),
         sector=_require_string(data, "sector", "company"),
