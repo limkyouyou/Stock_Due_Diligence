@@ -7,6 +7,7 @@ from typing import NewType
 
 CompanyId = NewType("CompanyId", str)
 EvidenceSourceId = NewType("EvidenceSourceId", str)
+ExecutiveId = NewType("ExecutiveId", str)
 
 
 class EvidenceSourceType(StrEnum):
@@ -72,6 +73,16 @@ class EvidenceCitation:
     source_id: EvidenceSourceId
     supporting_excerpt: str | None = None
     location: str | None = None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Executive:
+    """A uniquely identified company executive."""
+
+    executive_id: ExecutiveId
+    full_name: str
+    citations: tuple[EvidenceCitation, ...]
+    alternate_names: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

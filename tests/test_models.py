@@ -10,6 +10,8 @@ from stock_dd.models import (
     EvidenceSource,
     EvidenceSourceId,
     EvidenceSourceType,
+    Executive,
+    ExecutiveId,
 )
 
 
@@ -116,3 +118,62 @@ def test_evidence_citation_reference_part_of_source() -> None:
     assert citation.source_id == source_id
     assert citation.supporting_excerpt is not None
     assert citation.location == "Leadership - Jane Smith"
+
+
+def test_executive_preserves_identity_and_evidence() -> None:
+    citation = EvidenceCitation(
+        source_id=EvidenceSourceId("source-example-leadership"),
+        supporting_excerpt=(
+            "Jane Smith serves as the company's Chief Executive Officer."
+        ),
+        location="Executive Leadership — Jane Smith",
+    )
+
+    executive = Executive(
+        executive_id=ExecutiveId("executive-jane-smith"),
+        full_name="Jane Smith",
+        alternate_names=("Jane A. Smith",),
+        citations=(citation,),
+    )
+
+    assert executive.executive_id == ExecutiveId("executive-jane-smith")
+    assert executive.full_name == "Jane Smith"
+    assert executive.alternate_names == ("Jane A. Smith",)
+    assert executive.citations == (citation,)
+
+
+def test_executive_has_safe_alternate_name_default() -> None:
+    citation = EvidenceCitation(
+        source_id=EvidenceSourceId("source-example"),
+        location="Executive Officers",
+    )
+
+    executive = Executive(
+        executive_id=ExecutiveId("executive-example"),
+        full_name="Example Executive",
+        citations=(citation,),
+    )
+
+    assert executive.alternate_names == ()
+    assert executive.citations == (citation,)
+
+
+def test_executive_ids_distinguish_people_with_the_same_name() -> None:
+    citation = EvidenceCitation(
+        source_id=EvidenceSourceId("source-example"),
+        location="Executive Officers",
+    )
+
+    first_executive = Executive(
+        executive_id=ExecutiveId("executive_alex_kim_1"),
+        full_name="Alex Kim",
+        citations=(citation,),
+    )
+    second_executive = Executive(
+        executive_id=ExecutiveId("executive-alex-kim-2"),
+        full_name="Alex Kim",
+        citations=(citation,),
+    )
+
+    assert first_executive.full_name == second_executive.full_name
+    assert first_executive.executive_id != second_executive.executive_id
