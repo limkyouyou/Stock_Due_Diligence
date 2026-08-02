@@ -252,25 +252,19 @@ class CandidateEvidence:
             self.extraction_confidence is not None
             and not 0.0 <= self.extraction_confidence <= 1.0
         ):
-            raise ValueError(
-                "extraction confidence must be between 0.0 and 1.0"
-            )
+            raise ValueError("extraction confidence must be between 0.0 and 1.0")
 
         if (
             self.verification_status is VerificationStatus.REJECTED
             and not self.rejection_reason
         ):
-            raise ValueError(
-                "rejection reason is required for rejected evidence"
-            )
+            raise ValueError("rejection reason is required for rejected evidence")
 
         if (
             self.verification_status is not VerificationStatus.REJECTED
             and self.rejection_reason is not None
         ):
-            raise ValueError(
-                "rejection reason is only valid for rejected evidence"
-            )
+            raise ValueError("rejection reason is only valid for rejected evidence")
 
 
 @dataclass(frozen=True, slots=True)
