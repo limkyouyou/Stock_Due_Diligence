@@ -18,7 +18,7 @@ class CompanyRepository(Protocol):
         self,
         company_id: CompanyId,
     ) -> CompanyIdentity | None:
-        """Return a company by its internal identifer."""
+        """Return a company by its internal identifier."""
 
         ...
 
