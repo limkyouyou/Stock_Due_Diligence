@@ -1,11 +1,19 @@
 """Test for Stock DD repository contracts."""
 
-from datetime import date
+from datetime import UTC, date, datetime
 
-from stock_dd.models import CompanyId, CompanyIdentity, CompanyListing
+from stock_dd.models import (
+    CompanyId,
+    CompanyIdentity,
+    CompanyListing,
+    EvidenceSource,
+    EvidenceSourceId,
+    EvidenceSourceType,
+)
 from stock_dd.repositories import (
     CompanyListingRepository,
     CompanyRepository,
+    EvidenceSourceRepository,
 )
 
 
@@ -37,6 +45,38 @@ class InMemoryCompanyRepository:
         return next(
             (company for company in self._companies.values() if company.cik == cik),
             None,
+        )
+
+
+class InMemoryEvidenceSourceRepository:
+    """Small evidence-source repository used to test the contract."""
+
+    def __init__(self) -> None:
+        self._source: dict[EvidenceSourceId, EvidenceSource] = {}
+
+    def save(self, source: EvidenceSource) -> None:
+        """Store a source by its internal identifier."""
+
+        self._source[source.source_id] = source
+
+    def get(
+        self,
+        source_id: EvidenceSourceId,
+    ) -> EvidenceSource | None:
+        """Reutrn a stored source by its internal identifier."""
+
+        return self._source.get(source_id)
+
+    def find_by_external_id(
+        self,
+        external_id: str,
+        *,
+        source_type: EvidenceSourceType | None = None,
+    ) -> tuple[EvidenceSource, ...]:
+        """Return sources matching an external identifier."""
+
+        return tuple(
+            source for source in self._source.values() if source.external_id == external_id and (source_type is None or source.source_type is source_type)
         )
 
 
@@ -226,3 +266,120 @@ def test_company_listing_repository_returns_company_listing_history() -> None:
         current_listing,
     )
     assert repository.find_by_company(CompanyId("company-missing")) == ()
+
+
+def _make_evidence_source(
+    *, 
+    source_id: str = "source-example",
+    external_id: str | None = None,
+    source_type: EvidenceSourceType = (
+        EvidenceSourceType.REGULATORY_FILING
+    ),
+) -> EvidenceSource:
+    return EvidenceSource(
+        source_id=EvidenceSourceId(source_id),
+        source_type=source_type,
+        title="Example Research Source",
+        publisher="Example Corporation",
+        retrieved_at=datetime(2026, 8, 10, 20, 0, tzinfo=UTC),
+        external_id=external_id,
+    )
+
+
+def test_evidence_source_repository_protocol_accepts_implementation() -> None:
+    repository = InMemoryEvidenceSourceRepository()
+
+    assert isinstance(repository, EvidenceSourceRepository)
+
+
+def test_evidence_source_repository_supports_identity_lookup() -> None:
+    repository: EvidenceSourceRepository = (
+        InMemoryEvidenceSourceRepository()
+    )
+    source = _make_evidence_source()
+
+    repository.save(source)
+
+    assert repository.get(source.source_id) == source
+
+
+def test_evidence_source_repository_returns_none_for_missing_source() -> None:
+    repository: EvidenceSourceRepository = (
+        InMemoryEvidenceSourceRepository()
+    )
+
+    assert repository.get(
+        EvidenceSourceId("source-missing")
+    ) is None
+
+
+def test_evidence_source_repository_finds_external_identifier() -> None:
+    repository: EvidenceSourceRepository = (
+        InMemoryEvidenceSourceRepository()
+    )
+
+    source = _make_evidence_source(
+        source_id="source-example-filing",
+        external_id="0000123456-26-000001",
+    )
+
+    repository.save(source)
+
+    assert repository.find_by_external_id(
+        "0000123456-26-000001"
+    ) == (source,)
+
+
+def test_evidence_source_repository_can_filter_external_id_by_type() -> None:
+    repository: EvidenceSourceRepository = (
+        InMemoryEvidenceSourceRepository()
+    )
+
+    filing = _make_evidence_source(
+        source_id="source-filing",
+        external_id="external-123",
+        source_type=EvidenceSourceType.REGULATORY_FILING,
+    )
+    regulator_data = _make_evidence_source(
+        source_id="source-regulator-data",
+        external_id="external-123",
+        source_type=EvidenceSourceType.REGULATOR_DATA,
+    )
+
+    repository.save(filing)
+    repository.save(regulator_data)
+
+    assert repository.find_by_external_id(
+        "external-123"
+    ) == (
+        filing,
+        regulator_data,
+    )
+
+    assert repository.find_by_external_id(
+        "external-123",
+        source_type=EvidenceSourceType.REGULATORY_FILING,
+    ) == (filing,)
+
+
+def test_evidence_source_repository_replaces_same_source_id() -> None:
+    repository: EvidenceSourceRepository = (
+        InMemoryEvidenceSourceRepository()
+    )
+
+    original = _make_evidence_source(
+        source_id="source-example",
+    )
+
+    updated = EvidenceSource(
+        source_id=original.source_id,
+        source_type=original.source_type,
+        title="Updated Source Tile",
+        publisher=original.publisher,
+        retrieved_at=original.retrieved_at,
+    )
+
+    repository.save(original)
+    repository.save(updated)
+
+    assert repository.get(original.source_id) == updated
