@@ -46,7 +46,7 @@ class EvidenceSourceRepository(Protocol):
 class CandidateEvidenceRepository(Protocol):
     """Persistence contract for unverified research claims."""
 
-    def save(salfe, candidate: CandidateEvidence) -> None:
+    def save(safe, candidate: CandidateEvidence) -> None:
         """Persist a candidate evidence record."""
 
         ...

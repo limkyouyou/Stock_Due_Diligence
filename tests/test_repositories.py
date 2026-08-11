@@ -264,7 +264,7 @@ class InMemoryCompanyListingRepository:
                 or listing.exchange.upper() == normalized_exchange
             )
             and (listing.valid_from is None or listing.valid_from <= as_of_date)
-            and (listing.valid_to is None or as_of_date < listing.valid_to)
+            and (listing.valid_to is None or as_of_date <= listing.valid_to)
         )
 
     def find_by_company(
@@ -313,6 +313,11 @@ def test_company_listing_repository_resolves_historical_ticker() -> None:
     ) == (historical_listing,)
 
     assert repository.find_by_ticker("OLD", as_of_date=date(2024, 6, 1)) == ()
+
+    assert repository.find_by_ticker(
+        "OLD",
+        as_of_date=date(2022, 12, 31),
+    ) == (historical_listing,)
 
 
 def test_company_listing_repository_can_filter_by_exchange() -> None:
