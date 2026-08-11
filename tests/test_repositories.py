@@ -1,16 +1,26 @@
 """Test for Stock DD repository contracts."""
 
+from dataclasses import replace
 from datetime import UTC, date, datetime
 
 from stock_dd.models import (
+    CandidateClaimType,
+    CandidateEvidence,
+    CandidateEvidenceId,
+    CandidateSubjectType,
     CompanyId,
     CompanyIdentity,
     CompanyListing,
+    EvidenceCitation,
     EvidenceSource,
     EvidenceSourceId,
     EvidenceSourceType,
+    ExecutiveId,
+    ExtractionMethod,
+    VerificationStatus,
 )
 from stock_dd.repositories import (
+    CandidateEvidenceRepository,
     CompanyListingRepository,
     CompanyRepository,
     EvidenceSourceRepository,
@@ -80,6 +90,77 @@ class InMemoryEvidenceSourceRepository:
             for source in self._source.values()
             if source.external_id == external_id
             and (source_type is None or source.source_type is source_type)
+        )
+
+
+class InMemoryCandidateEvidenceRepository:
+    """small candidate-evidence repository used to test the contract."""
+
+    def __init__(self) -> None:
+        self._candidates: dict[
+            CandidateEvidenceId,
+            CandidateEvidence,
+        ] = {}
+
+    def save(self, candidate: CandidateEvidence) -> None:
+        """Store a candidate by its internal identifier."""
+
+        self._candidates[candidate.candidate_id] = candidate
+
+    def get(
+        self,
+        candidate_id: CandidateEvidenceId,
+    ) -> CandidateEvidence | None:
+        """Return a stored candidate by its internal identifier."""
+
+        return self._candidates.get(candidate_id)
+
+    def find_by_company(
+        self,
+        company_id: CompanyId,
+        *,
+        verification_status: VerificationStatus | None = None,
+    ) -> tuple[CandidateEvidence, ...]:
+        """Reurn candidate evidence associated with a company."""
+
+        return tuple(
+            candidate
+            for candidate in self._candidates.values()
+            if candidate.company_id == company_id
+            and (
+                verification_status is None
+                or candidate.verification_status is verification_status
+            )
+        )
+
+    def find_by_executive(
+        self,
+        executive_id: ExecutiveId,
+        *,
+        verification_status: VerificationStatus | None = None,
+    ) -> tuple[CandidateEvidence, ...]:
+        """Return candidiate evidence associated with an executive."""
+
+        return tuple(
+            candidate
+            for candidate in self._candidates.values()
+            if candidate.executive_id == executive_id
+            and (
+                verification_status is None
+                or candidate.verification_status is verification_status
+            )
+        )
+
+    def find_by_status(
+        self,
+        verification_status: VerificationStatus,
+    ) -> tuple[CandidateEvidence, ...]:
+        """Return candidate evidence with a verification status."""
+
+        return tuple(
+            candidate
+            for candidate in self._candidates.values()
+            if candidate.verification_status is verification_status
         )
 
 
@@ -368,3 +449,158 @@ def test_evidence_source_repository_replaces_same_source_id() -> None:
     repository.save(updated)
 
     assert repository.get(original.source_id) == updated
+
+
+def _make_candidate_evidence(
+    *,
+    candidate_id: str = "candidate-example",
+    company_id: CompanyId | None = None,
+    executive_id: ExecutiveId | None = None,
+    verification_status: VerificationStatus = (VerificationStatus.UNREVIEWED),
+) -> CandidateEvidence:
+    if company_id is None:
+        company_id = CompanyId("company-example")
+
+    return CandidateEvidence(
+        candidate_id=CandidateEvidenceId(candidate_id),
+        subject_type=CandidateSubjectType.EXECUTIVE,
+        subject_name="Jane Smith",
+        claim_type=CandidateClaimType.EXECUTIVE_FULL_NAME,
+        extracted_value="Jane Smith",
+        citation=EvidenceCitation(
+            source_id=EvidenceSourceId("source-example"),
+            location="Executive officer",
+        ),
+        extraction_method=ExtractionMethod.RESEARCH_AGENT,
+        extracted_at=datetime(
+            2026,
+            8,
+            10,
+            20,
+            0,
+            tzinfo=UTC,
+        ),
+        verification_status=verification_status,
+        company_id=company_id,
+        executive_id=executive_id,
+    )
+
+
+def test_candidate_evidence_repository_protocol_accepts_implementation() -> None:
+    repository = InMemoryCandidateEvidenceRepository()
+
+    assert isinstance(repository, CandidateEvidenceRepository)
+
+
+def test_candidate_evidence_repository_supports_identify_lookup() -> None:
+    repository: CandidateEvidenceRepository = InMemoryCandidateEvidenceRepository()
+    candidate = _make_candidate_evidence()
+
+    repository.save(candidate)
+
+    assert repository.get(candidate.candidate_id) == candidate
+
+
+def test_candidate_evidence_repository_returns_none_for_missing_candidate() -> None:
+    repository: CandidateEvidenceRepository = InMemoryCandidateEvidenceRepository()
+
+    assert repository.get(CandidateEvidenceId("candidate-missing")) is None
+
+
+def test_candidate_evidence_repository_finds_candidates_by_company() -> None:
+    repository: CandidateEvidenceRepository = InMemoryCandidateEvidenceRepository()
+
+    first = _make_candidate_evidence(
+        candidate_id="candidate-first",
+    )
+    second = _make_candidate_evidence(
+        candidate_id="candidate-second",
+    )
+    other_company = _make_candidate_evidence(
+        candidate_id="candidate-other-company",
+        company_id=CompanyId("company-other"),
+    )
+
+    repository.save(first)
+    repository.save(second)
+    repository.save(other_company)
+
+    assert repository.find_by_company(CompanyId("company-example")) == (
+        first,
+        second,
+    )
+
+
+def test_candidate_evidence_repository_filters_companyby_status() -> None:
+    repository: CandidateEvidenceRepository = InMemoryCandidateEvidenceRepository()
+
+    unreviwed = _make_candidate_evidence(
+        candidate_id="candidate-unreviwed",
+    )
+    confirmed = _make_candidate_evidence(
+        candidate_id="candidate-confirmed",
+        verification_status=(VerificationStatus.PRIMARY_SOURCE_CONFIRMED),
+    )
+
+    repository.save(unreviwed)
+    repository.save(confirmed)
+
+    assert repository.find_by_company(
+        CompanyId("company-example"),
+        verification_status=VerificationStatus.UNREVIEWED,
+    ) == (unreviwed,)
+
+
+def test_candidate_evidence_repository_finds_candidates_by_executives() -> None:
+    repository: CandidateEvidenceRepository = InMemoryCandidateEvidenceRepository()
+    executive_id = ExecutiveId("executive-Jane-Smith")
+
+    candidate = _make_candidate_evidence(
+        executive_id=executive_id,
+    )
+    unresolved = _make_candidate_evidence(
+        candidate_id="candidate-unresolved-executive",
+    )
+
+    repository.save(candidate)
+    repository.save(unresolved)
+
+    assert repository.find_by_executive(
+        executive_id,
+    ) == (candidate,)
+
+
+def test_candidate_evidence_repository_finds_candidates_by_status() -> None:
+    repository: CandidateEvidenceRepository = InMemoryCandidateEvidenceRepository()
+
+    unreviewed = _make_candidate_evidence(
+        candidate_id="candidate-unreviewed",
+    )
+    disputed = _make_candidate_evidence(
+        candidate_id="candidate-disputed",
+        verification_status=VerificationStatus.DISPUTED,
+    )
+
+    repository.save(unreviewed)
+    repository.save(disputed)
+
+    assert repository.find_by_status(VerificationStatus.DISPUTED) == (disputed,)
+
+
+def test_candidate_evidence_repository_replaces_candidate_after_review() -> None:
+    repository: CandidateEvidenceRepository = InMemoryCandidateEvidenceRepository()
+    candidate = _make_candidate_evidence()
+
+    confirmed = replace(
+        candidate,
+        verification_status=(VerificationStatus.PRIMARY_SOURCE_CONFIRMED),
+    )
+
+    repository.save(candidate)
+    repository.save(confirmed)
+
+    assert repository.get(candidate.candidate_id) == confirmed
+    assert repository.find_by_status(VerificationStatus.UNREVIEWED) == ()
+    assert repository.find_by_status(VerificationStatus.PRIMARY_SOURCE_CONFIRMED) == (
+        confirmed,
+    )
