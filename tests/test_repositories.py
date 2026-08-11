@@ -15,6 +15,7 @@ from stock_dd.models import (
     EvidenceSource,
     EvidenceSourceId,
     EvidenceSourceType,
+    Executive,
     ExecutiveId,
     ExtractionMethod,
     VerificationStatus,
@@ -24,6 +25,7 @@ from stock_dd.repositories import (
     CompanyListingRepository,
     CompanyRepository,
     EvidenceSourceRepository,
+    ExecutiveRepository,
 )
 
 
@@ -162,6 +164,26 @@ class InMemoryCandidateEvidenceRepository:
             for candidate in self._candidates.values()
             if candidate.verification_status is verification_status
         )
+
+
+class InMemoryExecutiveRepository:
+    """Small executive repository used to test the contract."""
+
+    def __init__(self) -> None:
+        self._executives: dict[ExecutiveId, Executive] = {}
+
+    def save(self, executive: Executive) -> None:
+        """Store an executive by their internal identifier."""
+
+        self._executives[executive.executive_id] = executive
+
+    def get(
+        self,
+        executive_id: ExecutiveId,
+    ) -> Executive | None:
+        """Return a stored executive by their internal identifier."""
+
+        return self._executives.get(executive_id)
 
 
 def test_company_repository_protocol_accepts_compatble_implementation() -> None:
@@ -604,3 +626,51 @@ def test_candidate_evidence_repository_replaces_candidate_after_review() -> None
     assert repository.find_by_status(VerificationStatus.PRIMARY_SOURCE_CONFIRMED) == (
         confirmed,
     )
+
+
+def _make_executive(
+    *,
+    executive_id: str = "executive-jane-smith",
+    full_name: str = "Jane Smith",
+) -> Executive:
+    return Executive(
+        executive_id=ExecutiveId(executive_id),
+        full_name=full_name,
+        citations=(
+            EvidenceCitation(
+                source_id=EvidenceSourceId("source-example-executive-biography"),
+                location="Executive officers",
+            ),
+        ),
+    )
+
+
+def test_executive_repository_supports_identity_lookup() -> None:
+    repository: ExecutiveRepository = InMemoryExecutiveRepository()
+    executive = _make_executive()
+
+    repository.save(executive)
+
+    assert repository.get(executive.executive_id) == executive
+
+
+def test_executive_repository_returns_none_for_missing_executive() -> None:
+    repository: ExecutiveRepository = InMemoryExecutiveRepository()
+
+    assert repository.get(ExecutiveId("executive-missing")) is None
+
+
+def test_executive_repository_replaces_same_executive_id() -> None:
+    repository: ExecutiveRepository = InMemoryExecutiveRepository()
+    original = _make_executive()
+
+    updated = replace(
+        original,
+        full_name="Jane A. Smith",
+        alternate_names=("Jane Smith",),
+    )
+
+    repository.save(original)
+    repository.save(updated)
+
+    assert repository.get(original.executive_id) == updated
