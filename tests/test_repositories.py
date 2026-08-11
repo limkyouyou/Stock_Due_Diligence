@@ -650,6 +650,12 @@ def _make_executive(
     )
 
 
+def test_executive_repository_protocol_accepts_implementation() -> None:
+    respository: ExecutiveRepository = InMemoryExecutiveRepository()
+
+    assert isinstance(respository, ExecutiveRepository)
+
+
 def test_executive_repository_supports_identity_lookup() -> None:
     repository: ExecutiveRepository = InMemoryExecutiveRepository()
     executive = _make_executive()
