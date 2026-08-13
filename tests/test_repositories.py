@@ -1014,9 +1014,9 @@ def test_career_position_repository_finds_position_by_employer_company() -> None
     repository.save(unresolved)
     repository.save(other_company)
 
-    assert repository.find_by_employer_company(company_id=CompanyId("company-example")) == (
-        matched,
-    )
+    assert repository.find_by_employer_company(
+        company_id=CompanyId("company-example")
+    ) == (matched,)
 
 
 def test_career_position_repository_replaces_same_position_id() -> None:
