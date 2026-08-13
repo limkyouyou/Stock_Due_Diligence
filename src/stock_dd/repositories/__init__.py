@@ -8,6 +8,9 @@ from stock_dd.repositories.evidence import (
     EvidenceSourceRepository as EvidenceSourceRepository,
 )
 from stock_dd.repositories.executive import (
+    CareerPositionRepository as CareerPositionRepository,
+)
+from stock_dd.repositories.executive import (
     ExecutiveRepository as ExecutiveRepository,
 )
 from stock_dd.repositories.executive import (

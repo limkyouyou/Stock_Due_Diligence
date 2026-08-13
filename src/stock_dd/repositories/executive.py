@@ -3,6 +3,8 @@
 from typing import Protocol, runtime_checkable
 
 from stock_dd.models import (
+    CareerPosition,
+    CareerPositionId,
     CompanyId,
     Executive,
     ExecutiveId,
@@ -41,7 +43,7 @@ class ExecutiveRoleRepository(Protocol):
 
     def get(
         self,
-        rold_id: ExecutiveRoleId,
+        role_id: ExecutiveRoleId,
     ) -> ExecutiveRole | None:
         """Return an executive role by its internal identifier."""
 
@@ -62,5 +64,39 @@ class ExecutiveRoleRepository(Protocol):
         role_type: ExecutiveRoleType | None = None,
     ) -> tuple[ExecutiveRole, ...]:
         """Return executive roles associated with a company."""
+
+        ...
+
+
+@runtime_checkable
+class CareerPositionRepository(Protocol):
+    """Persistence contract for executive career positions."""
+
+    def save(self, position: CareerPosition) -> None:
+        """Persist an executive career position."""
+
+        ...
+
+    def get(
+        self,
+        position_id: CareerPositionId,
+    ) -> CareerPosition | None:
+        """Return a career positrion by its internal identifier."""
+
+        ...
+
+    def find_by_executive(
+        self,
+        executive_id: ExecutiveId,
+    ) -> tuple[CareerPosition, ...]:
+        """Return all known career positions for an executive."""
+
+        ...
+
+    def find_by_employer_company(
+        self,
+        company_id: CompanyId,
+    ) -> tuple[CareerPosition, ...]:
+        """Return career positions linked to a known employer company."""
 
         ...

@@ -8,6 +8,8 @@ from stock_dd.models import (
     CandidateEvidence,
     CandidateEvidenceId,
     CandidateSubjectType,
+    CareerPosition,
+    CareerPositionId,
     CompanyId,
     CompanyIdentity,
     CompanyListing,
@@ -26,6 +28,7 @@ from stock_dd.models import (
 )
 from stock_dd.repositories import (
     CandidateEvidenceRepository,
+    CareerPositionRepository,
     CompanyListingRepository,
     CompanyRepository,
     EvidenceSourceRepository,
@@ -189,6 +192,53 @@ class InMemoryExecutiveRepository:
         """Return a stored executive by their internal identifier."""
 
         return self._executives.get(executive_id)
+
+
+class InMemoryCareerPositionRepository:
+    """Small career-position repository used to test the contract."""
+
+    def __init__(self) -> None:
+        self._positions: dict[
+            CareerPositionId,
+            CareerPosition,
+        ] = {}
+
+    def save(self, position: CareerPosition) -> None:
+        """Store a career position by it sinternal identifer."""
+
+        self._positions[position.position_id] = position
+
+    def get(
+        self,
+        position_id: CareerPositionId,
+    ) -> CareerPosition | None:
+        """Return a stored career position by its internal identifier."""
+
+        return self._positions.get(position_id)
+
+    def find_by_executive(
+        self,
+        executive_id: ExecutiveId,
+    ) -> tuple[CareerPosition, ...]:
+        """Return career positions belonging to an executive."""
+
+        return tuple(
+            position
+            for position in self._positions.values()
+            if position.executive_id == executive_id
+        )
+
+    def find_by_employer_company(
+        self,
+        company_id: CompanyId,
+    ) -> tuple[CareerPosition, ...]:
+        """Return positions linked to a known employer company."""
+
+        return tuple(
+            position
+            for position in self._positions.values()
+            if position.employer_company_id == company_id
+        )
 
 
 def test_company_repository_protocol_accepts_compatble_implementation() -> None:
@@ -749,7 +799,7 @@ def _make_executive_role(
         company_id=company_id,
         executive_id=executive_id,
         role_type=role_type,
-        reported_title="Chied Executive Officer",
+        reported_title="Chief Executive Officer",
         started_on=PartialDate(year=2022),
         citations=(
             EvidenceCitation(
@@ -866,3 +916,119 @@ def test_executive_role_repository_replaces_same_role_id() -> None:
     repository.save(updated)
 
     assert repository.get(original.role_id) == updated
+
+
+def _make_career_position(
+    *,
+    position_id: str = "career-jane-smith-example=cfo",
+    executive_id: str = "executive-jane-smith",
+    employer_company_id: CompanyId | None = None,
+    employer_name: str = "Example Corporation",
+    reported_title: str = "Chief Financial Officer",
+) -> CareerPosition:
+    return CareerPosition(
+        position_id=CareerPositionId(position_id),
+        executive_id=ExecutiveId(executive_id),
+        employer_company_id=employer_company_id,
+        employer_name=employer_name,
+        reported_title=reported_title,
+        started_on=PartialDate(year=2018),
+        ended_on=PartialDate(year=2022),
+        citations=(
+            EvidenceCitation(
+                source_id=EvidenceSourceId("source-example-career-history"),
+                location="Executive biograpy",
+            ),
+        ),
+    )
+
+
+def test_career_position_repository_protocol_accepts_implementation() -> None:
+    repository = InMemoryCareerPositionRepository()
+
+    assert isinstance(repository, CareerPositionRepository)
+
+
+def test_career_position_repository_supports_identity_lookup() -> None:
+    repository: CareerPositionRepository = InMemoryCareerPositionRepository()
+    position = _make_career_position()
+
+    repository.save(position)
+
+    assert repository.get(position.position_id) == position
+
+
+def test_career_position_repository_returns_none_for_missing_position() -> None:
+    repository: CareerPositionRepository = InMemoryCareerPositionRepository()
+
+    assert repository.get(CareerPositionId("career-missing")) is None
+
+
+def test_career_position_repository_finds_positions_by_executive() -> None:
+    repository: CareerPositionRepository = InMemoryCareerPositionRepository()
+
+    first = _make_career_position(
+        position_id="career-jane-smith-first",
+    )
+    second = _make_career_position(
+        position_id="career-jane-smith-second",
+        employer_name="Another Corporation",
+        reported_title="Vice President of Finance",
+    )
+    other_executive = _make_career_position(
+        position_id="career-other-executive",
+        executive_id="executive-other",
+    )
+
+    repository.save(first)
+    repository.save(second)
+    repository.save(other_executive)
+
+    assert repository.find_by_executive(ExecutiveId("executive-jane-smith")) == (
+        first,
+        second,
+    )
+
+
+def test_career_position_repository_finds_position_by_employer_company() -> None:
+    repository: CareerPositionRepository = InMemoryCareerPositionRepository()
+
+    company_id = CompanyId("company-example")
+
+    matched = _make_career_position(
+        position_id="career-matched-employer",
+        employer_company_id=company_id,
+    )
+
+    unresolved = _make_career_position(
+        position_id="career-unresolved-employer",
+        employer_name="Example Corporation",
+    )
+
+    other_company = _make_career_position(
+        position_id="career-other-company",
+        employer_company_id=CompanyId("company-other"),
+    )
+
+    repository.save(matched)
+    repository.save(unresolved)
+    repository.save(other_company)
+
+    assert repository.find_by_employer_company(company_id=CompanyId("company-example")) == (
+        matched,
+    )
+
+
+def test_career_position_repository_replaces_same_position_id() -> None:
+    repository: CareerPositionRepository = InMemoryCareerPositionRepository()
+    original = _make_career_position()
+
+    updated = replace(
+        original,
+        reported_title="Senior Vice President and Chief Financial Officer",
+    )
+
+    repository.save(original)
+    repository.save(updated)
+
+    assert repository.get(original.position_id) == updated
