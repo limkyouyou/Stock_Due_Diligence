@@ -17,7 +17,11 @@ from stock_dd.models import (
     EvidenceSourceType,
     Executive,
     ExecutiveId,
+    ExecutiveRole,
+    ExecutiveRoleId,
+    ExecutiveRoleType,
     ExtractionMethod,
+    PartialDate,
     VerificationStatus,
 )
 from stock_dd.repositories import (
@@ -26,6 +30,7 @@ from stock_dd.repositories import (
     CompanyRepository,
     EvidenceSourceRepository,
     ExecutiveRepository,
+    ExecutiveRoleRepository,
 )
 
 
@@ -275,6 +280,45 @@ class InMemoryCompanyListingRepository:
 
         return tuple(
             listing for listing in self._listings if listing.company_id == company_id
+        )
+
+
+class InMemoryExecutiveRoleRepository:
+    """Small executive-role repository used to test the contract."""
+
+    def __init__(self) -> None:
+        self._roles: dict[ExecutiveRoleId, ExecutiveRole] = {}
+
+    def save(self, role: ExecutiveRole) -> None:
+        """Store a role by its internal identifier."""
+
+        self._roles[role.role_id] = role
+
+    def get(self, role_id: ExecutiveRoleId) -> ExecutiveRole | None:
+        """Return a stored role by its internal identifier."""
+
+        return self._roles.get(role_id)
+
+    def find_by_executive(
+        self,
+        executive_id: ExecutiveId,
+    ) -> tuple[ExecutiveRole, ...]:
+        """Return all roles belonging to an executive."""
+
+        return tuple(
+            role for role in self._roles.values() if role.executive_id == executive_id
+        )
+
+    def find_by_company(
+        self, company_id: CompanyId, *, role_type: ExecutiveRoleType | None = None
+    ) -> tuple[ExecutiveRole, ...]:
+        """Return roles associated with a company."""
+
+        return tuple(
+            role
+            for role in self._roles.values()
+            if (role.company_id == company_id)
+            and (role_type is None or role.role_type is role_type)
         )
 
 
@@ -685,3 +729,140 @@ def test_executive_repository_replaces_same_executive_id() -> None:
     repository.save(updated)
 
     assert repository.get(original.executive_id) == updated
+
+
+def _make_executive_role(
+    *,
+    role_id: str = "role-jane-smith-example-ceo",
+    company_id: CompanyId | None = None,
+    executive_id: ExecutiveId | None = None,
+    role_type: ExecutiveRoleType = ExecutiveRoleType.CHIEF_EXECUTIVE_OFFICER,
+) -> ExecutiveRole:
+    if company_id is None:
+        company_id = CompanyId("company-example")
+
+    if executive_id is None:
+        executive_id = ExecutiveId("executive-jane-smith")
+    
+    return ExecutiveRole(
+        role_id=ExecutiveRoleId(role_id),
+        company_id=company_id,
+        executive_id=executive_id,
+        role_type=role_type,
+        reported_title="Chied Executive Officer",
+        started_on=PartialDate(year=2022),
+        citations=(
+            EvidenceCitation(
+                source_id=EvidenceSourceId("source-example-executive-role"),
+                location="Executive officers",
+            ),
+        ),
+    )
+
+
+def test_executive_role_repository_protocol_accepts_implementation() -> None:
+    repository = InMemoryExecutiveRoleRepository()
+
+    assert isinstance(repository, ExecutiveRoleRepository)
+
+
+def test_executive_role_repository_supports_identity_lookup() -> None:
+    repository: ExecutiveRoleRepository = InMemoryExecutiveRoleRepository()
+    role = _make_executive_role()
+
+    repository.save(role)
+
+    assert repository.get(role.role_id) == role
+
+
+def test_execuitve_role_repository_returns_none_for_missing_role() -> None:
+    repository: ExecutiveRoleRepository = InMemoryExecutiveRoleRepository()
+
+    assert repository.get(ExecutiveRoleId("role-missing")) is None
+
+
+def test_executive_role_repository_finds_roles_by_execuitve() -> None:
+    repository: ExecutiveRoleRepository = InMemoryExecutiveRoleRepository()
+
+    ceo_role = _make_executive_role(
+        role_id="role-jane-smith-ceo",
+    )
+    president_role = _make_executive_role(
+        role_id="role-jane-smith-presitdent",
+        role_type=ExecutiveRoleType.PRESIDENT,
+    )
+    other_executive_role = _make_executive_role(
+        role_id="role-other-executive",
+        executive_id=ExecutiveId("executive-other"),
+    )
+
+    repository.save(ceo_role)
+    repository.save(president_role)
+    repository.save(other_executive_role)
+
+    assert repository.find_by_executive(ExecutiveId("executive-jane-smith")) == (
+        ceo_role,
+        president_role,
+    )
+
+
+def test_executive_role_repository_finds_roles_by_company() -> None:
+    repository: ExecutiveRoleRepository = InMemoryExecutiveRoleRepository()
+
+    ceo_role = _make_executive_role(
+        role_id="role-example-ceo",
+    )
+    cfo_role = _make_executive_role(
+        role_id="role-example-cfo",
+        executive_id=ExecutiveId("executive-cfo"),
+        role_type=ExecutiveRoleType.CHIEF_FINANCIAL_OFFICER,
+    )
+    other_executive_role = _make_executive_role(
+        role_id="role-other-company-ceo",
+        company_id=CompanyId("company-other"),
+    )
+
+    repository.save(ceo_role)
+    repository.save(cfo_role)
+    repository.save(other_executive_role)
+
+    assert repository.find_by_company(CompanyId("company-example")) == (
+        ceo_role,
+        cfo_role,
+    )
+
+
+def test_executive_role_repository_filters_company_by_role_type() -> None:
+    repository: ExecutiveRoleRepository = InMemoryExecutiveRoleRepository()
+
+    ceo_role = _make_executive_role(
+        role_id="role-example-ceo",
+    )
+    cfo_role = _make_executive_role(
+        role_id="role-example-cfo",
+        executive_id=ExecutiveId("executive-cfo"),
+        role_type=ExecutiveRoleType.CHIEF_FINANCIAL_OFFICER,
+    )
+
+    repository.save(ceo_role)
+    repository.save(cfo_role)
+
+    assert repository.find_by_company(
+        CompanyId("company-example"),
+        role_type=ExecutiveRoleType.CHIEF_EXECUTIVE_OFFICER,
+    ) == (ceo_role,)
+
+
+def test_executive_role_repository_replaces_same_role_id() -> None:
+    repository: ExecutiveRoleRepository = InMemoryExecutiveRoleRepository()
+    original = _make_executive_role()
+
+    updated = replace(
+        original,
+        reported_title="President and Chief Executive Officer",
+    )
+
+    repository.save(original)
+    repository.save(updated)
+
+    assert repository.get(original.role_id) == updated
