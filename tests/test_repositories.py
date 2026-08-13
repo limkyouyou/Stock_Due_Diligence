@@ -743,7 +743,7 @@ def _make_executive_role(
 
     if executive_id is None:
         executive_id = ExecutiveId("executive-jane-smith")
-    
+
     return ExecutiveRole(
         role_id=ExecutiveRoleId(role_id),
         company_id=company_id,
