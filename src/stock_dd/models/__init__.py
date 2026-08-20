@@ -29,6 +29,7 @@ from stock_dd.models.identifiers import (
 from stock_dd.models.identifiers import CareerPositionId as CareerPositionId
 from stock_dd.models.identifiers import CompanyEventId as CompanyEventId
 from stock_dd.models.identifiers import CompanyId as CompanyId
+from stock_dd.models.identifiers import CompanyListingId as CompanyListingId
 from stock_dd.models.identifiers import EvidenceSourceId as EvidenceSourceId
 from stock_dd.models.identifiers import ExecutiveId as ExecutiveId
 from stock_dd.models.identifiers import ExecutiveRoleId as ExecutiveRoleId

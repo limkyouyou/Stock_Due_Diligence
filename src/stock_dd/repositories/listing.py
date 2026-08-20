@@ -3,7 +3,11 @@
 from datetime import date
 from typing import Protocol, runtime_checkable
 
-from stock_dd.models import CompanyId, CompanyListing
+from stock_dd.models import (
+    CompanyId,
+    CompanyListing,
+    CompanyListingId,
+)
 
 
 @runtime_checkable
@@ -12,6 +16,14 @@ class CompanyListingRepository(Protocol):
 
     def save(self, listing: CompanyListing) -> None:
         """Persist a company listing."""
+
+        ...
+
+    def get(
+        self,
+        listing_id: CompanyListingId,
+    ) -> CompanyListing | None:
+        """Return a company listing by its internal identifier."""
 
         ...
 

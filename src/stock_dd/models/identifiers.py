@@ -3,6 +3,7 @@
 from typing import NewType
 
 CompanyId = NewType("CompanyId", str)
+CompanyListingId = NewType("CompanyListingId", str)
 EvidenceSourceId = NewType("EvidenceSourceId", str)
 ExecutiveId = NewType("ExecutiveId", str)
 ExecutiveRoleId = NewType("ExecutiveRoleId", str)

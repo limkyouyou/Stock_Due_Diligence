@@ -3,7 +3,10 @@
 from dataclasses import dataclass
 from datetime import date
 
-from stock_dd.models.identifiers import CompanyId
+from stock_dd.models.identifiers import (
+    CompanyId,
+    CompanyListingId,
+)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -21,6 +24,7 @@ class CompanyIdentity:
 class CompanyListing:
     """A publicly traded security listing associated with a company."""
 
+    listing_id: CompanyListingId
     company_id: CompanyId
     ticker: str
     exchange: str

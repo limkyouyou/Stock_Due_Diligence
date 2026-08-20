@@ -25,7 +25,7 @@ class CompanyEventRepository(Protocol):
         self,
         event_id: CompanyEventId,
     ) -> CompanyEvent | None:
-        """Return a companye vent by its internal identifier."""
+        """Return a company vent by its internal identifier."""
 
         ...
 
@@ -45,7 +45,7 @@ class CompanyEventRepository(Protocol):
         *,
         event_type: CompanyEventType | None = None,
     ) -> tuple[CompanyEvent, ...]:
-        """Return event asscosiated with an executive."""
+        """Return event associated with an executive."""
 
         ...
 

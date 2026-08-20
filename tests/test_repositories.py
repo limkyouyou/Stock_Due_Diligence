@@ -16,6 +16,7 @@ from stock_dd.models import (
     CompanyId,
     CompanyIdentity,
     CompanyListing,
+    CompanyListingId,
     EvidenceCitation,
     EvidenceSource,
     EvidenceSourceId,
@@ -338,31 +339,20 @@ class InMemoryCompanyListingRepository:
     """Small listing repository used to test the contract."""
 
     def __init__(self) -> None:
-        self._listings: list[CompanyListing] = []
+        self._listings: dict[CompanyListingId, CompanyListing] = {}
 
     def save(self, listing: CompanyListing) -> None:
-        """Store or replace one listing record."""
+        """Store a listing by its internal identifier."""
 
-        listing_key = (
-            listing.company_id,
-            listing.ticker.upper(),
-            listing.exchange.upper(),
-            listing.valid_from,
-        )
+        self._listings[listing.listing_id] = listing
 
-        for index, existing in enumerate(self._listings):
-            existing_key = (
-                existing.company_id,
-                existing.ticker.upper(),
-                existing.exchange.upper(),
-                existing.valid_from,
-            )
+    def get(
+        self,
+        listing_id: CompanyListingId,
+    ) -> CompanyListing | None:
+        """Return a stored listing by its internal identifier."""
 
-            if existing_key == listing_key:
-                self._listings[index] = listing
-                return
-
-        self._listings.append(listing)
+        return self._listings.get(listing_id)
 
     def find_by_ticker(
         self,
@@ -378,7 +368,7 @@ class InMemoryCompanyListingRepository:
 
         return tuple(
             listing
-            for listing in self._listings
+            for listing in self._listings.values()
             if listing.ticker.upper() == normalized_ticker
             and (
                 normalized_exchange is None
@@ -395,7 +385,9 @@ class InMemoryCompanyListingRepository:
         """Return all listings belonging to a company."""
 
         return tuple(
-            listing for listing in self._listings if listing.company_id == company_id
+            listing
+            for listing in self._listings.values()
+            if listing.company_id == company_id
         )
 
 
@@ -448,6 +440,7 @@ def test_company_listing_repository_resolves_historical_ticker() -> None:
     repository: CompanyListingRepository = InMemoryCompanyListingRepository()
 
     historical_listing = CompanyListing(
+        listing_id=CompanyListingId("listing-example-old"),
         company_id=CompanyId("company-example"),
         ticker="OLD",
         exchange="NASDAQ",
@@ -457,6 +450,7 @@ def test_company_listing_repository_resolves_historical_ticker() -> None:
         is_active=False,
     )
     current_listing = CompanyListing(
+        listing_id=CompanyListingId("listing-example-new"),
         company_id=CompanyId("company-example"),
         ticker="NEW",
         exchange="NASDAQ",
@@ -484,11 +478,13 @@ def test_company_listing_repository_can_filter_by_exchange() -> None:
     repository: CompanyListingRepository = InMemoryCompanyListingRepository()
 
     nasdaq_listing = CompanyListing(
+        listing_id=CompanyListingId("listing-example-nasdq"),
         company_id=CompanyId("company-example-us"),
         ticker="EXMP",
         exchange="NASDAQ",
     )
     tsx_listing = CompanyListing(
+        listing_id=CompanyListingId("listing-example-tsx"),
         company_id=CompanyId("company-example-ca"),
         ticker="EXMP",
         exchange="TSX",
@@ -516,6 +512,7 @@ def test_company_listing_repository_returns_company_listing_history() -> None:
     company_id = CompanyId("company-example")
 
     historical_listing = CompanyListing(
+        listing_id=CompanyListingId("listing-example-old"),
         company_id=company_id,
         ticker="OLD",
         exchange="NASDAQ",
@@ -523,6 +520,7 @@ def test_company_listing_repository_returns_company_listing_history() -> None:
         is_active=False,
     )
     current_listing = CompanyListing(
+        listing_id=CompanyListingId("listing-example-new"),
         company_id=company_id,
         ticker="NEW",
         exchange="NASDAQ",
@@ -537,6 +535,48 @@ def test_company_listing_repository_returns_company_listing_history() -> None:
         current_listing,
     )
     assert repository.find_by_company(CompanyId("company-missing")) == ()
+
+
+def test_company_listing_repository_supportes_identity_lookup() -> None:
+    repository: CompanyListingRepository = InMemoryCompanyListingRepository()
+
+    listing = CompanyListing(
+        listing_id=CompanyListingId("listing-example"),
+        company_id=CompanyId("company-example"),
+        ticker="EXMP",
+        exchange="NASDAQ",
+    )
+
+    repository.save(listing)
+
+    assert repository.get(listing.listing_id) == listing
+
+
+def test_company_listing_repository_returns_none_for_missing_listing() -> None:
+    repository: CompanyListingRepository = InMemoryCompanyListingRepository()
+
+    assert repository.get(CompanyListingId("liting-missing")) is None
+
+
+def test_company_listing_repository_replaces_same_listing_id() -> None:
+    repository: CompanyListingRepository = InMemoryCompanyListingRepository()
+
+    original = CompanyListing(
+        listing_id=CompanyListingId("listing-example"),
+        company_id=CompanyId("company-example"),
+        ticker="EXMP",
+        exchange="NASDAQ",
+    )
+
+    updated = replace(
+        original,
+        security_name="Common Stock",
+    )
+
+    repository.save(original)
+    repository.save(updated)
+
+    assert repository.get(original.listing_id) == updated
 
 
 def _make_evidence_source(

@@ -17,6 +17,7 @@ from stock_dd.models import (
     CompanyId,
     CompanyIdentity,
     CompanyListing,
+    CompanyListingId,
     DatePrecision,
     EvidenceCitation,
     EvidenceSource,
@@ -63,6 +64,7 @@ def test_company_identity_has_safe_defaults() -> None:
 
 def test_company_listing_tracks_listing_history() -> None:
     listing = CompanyListing(
+        listing_id=CompanyListingId("listing-example"),
         company_id=CompanyId("company-example"),
         ticker="EXMP",
         exchange="NASDAQ",
