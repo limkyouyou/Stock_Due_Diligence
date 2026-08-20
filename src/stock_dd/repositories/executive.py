@@ -81,7 +81,7 @@ class CareerPositionRepository(Protocol):
         self,
         position_id: CareerPositionId,
     ) -> CareerPosition | None:
-        """Return a career positrion by its internal identifier."""
+        """Return a career position by its internal identifier."""
 
         ...
 

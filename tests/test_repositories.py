@@ -10,6 +10,9 @@ from stock_dd.models import (
     CandidateSubjectType,
     CareerPosition,
     CareerPositionId,
+    CompanyEvent,
+    CompanyEventId,
+    CompanyEventType,
     CompanyId,
     CompanyIdentity,
     CompanyListing,
@@ -29,6 +32,7 @@ from stock_dd.models import (
 from stock_dd.repositories import (
     CandidateEvidenceRepository,
     CareerPositionRepository,
+    CompanyEventRepository,
     CompanyListingRepository,
     CompanyRepository,
     EvidenceSourceRepository,
@@ -238,6 +242,68 @@ class InMemoryCareerPositionRepository:
             position
             for position in self._positions.values()
             if position.employer_company_id == company_id
+        )
+
+
+class InMemoryCompanyEventRepository:
+    """Small company-event repository used to test the contract."""
+
+    def __init__(self) -> None:
+        self._events: dict[CompanyEventId, CompanyEvent] = {}
+
+    def save(self, event: CompanyEvent) -> None:
+        """Store an event by its internal identifier."""
+
+        self._events[event.event_id] = event
+
+    def get(
+        self,
+        event_id: CompanyEventId,
+    ) -> CompanyEvent | None:
+        """Return a stored event by its internal identifier."""
+
+        return self._events.get(event_id)
+
+    def find_by_company(
+        self,
+        company_id: CompanyId,
+        *,
+        event_type: CompanyEventType | None = None,
+    ) -> tuple[CompanyEvent, ...]:
+        """Return events associated with a company."""
+
+        return tuple(
+            event
+            for event in self._events.values()
+            if event.company_id == company_id
+            and (event_type is None or event.event_type is event_type)
+        )
+
+    def find_by_executive(
+        self,
+        executive_id: ExecutiveId,
+        *,
+        event_type: CompanyEventType | None = None,
+    ) -> tuple[CompanyEvent, ...]:
+        """return events associated with an executive."""
+
+        return tuple(
+            event
+            for event in self._events.values()
+            if executive_id in event.related_executive_ids
+            and (event_type is None or event.event_type is event_type)
+        )
+
+    def find_by_role(
+        self,
+        role_id: ExecutiveRoleId,
+    ) -> tuple[CompanyEvent, ...]:
+        """Return events associated with an executive role."""
+
+        return tuple(
+            event
+            for event in self._events.values()
+            if role_id in event.related_role_ids
         )
 
 
@@ -1032,3 +1098,175 @@ def test_career_position_repository_replaces_same_position_id() -> None:
     repository.save(updated)
 
     assert repository.get(original.position_id) == updated
+
+
+def _make_company_event(
+    *,
+    event_id: str = "event-jane-smith-appointed",
+    company_id: str = "company-example",
+    executive_id: str = "executive-jane-smith",
+    role_id: ExecutiveRoleId | None = None,
+    event_type: CompanyEventType = (CompanyEventType.EXECUTIVE_APPOINTMENT),
+) -> CompanyEvent:
+    related_role_ids = (role_id,) if role_id is not None else ()
+
+    return CompanyEvent(
+        event_id=CompanyEventId(event_id),
+        company_id=CompanyId(company_id),
+        event_type=event_type,
+        description="Jane Smith was appointed Chief Executive Officer.",
+        announced_on=date(2022, 6, 15),
+        occurred_on=PartialDate(year=2022, month=7, day=1),
+        related_executive_ids=(ExecutiveId(executive_id),),
+        related_role_ids=related_role_ids,
+        citations=(
+            EvidenceCitation(
+                source_id=EvidenceSourceId("source-example-company-event"),
+                location="Leadership announcement",
+            ),
+        ),
+    )
+
+
+def test_company_event_repository_protocol_accepts_implementation() -> None:
+    repository = InMemoryCompanyEventRepository()
+
+    assert isinstance(repository, CompanyEventRepository)
+
+
+def test_company_event_repository_supports_identity_lookup() -> None:
+    repository: CompanyEventRepository = InMemoryCompanyEventRepository()
+    event = _make_company_event()
+
+    repository.save(event)
+
+    assert repository.get(event.event_id) == event
+
+
+def test_company_event_repository_returns_none_for_missing_event() -> None:
+    repository: CompanyEventRepository = InMemoryCompanyEventRepository()
+
+    assert repository.get(CompanyEventId("event-missing")) is None
+
+
+def test_company_event_repository_finds_events_by_company() -> None:
+    repository: CompanyEventRepository = InMemoryCompanyEventRepository()
+
+    appointment = _make_company_event(
+        event_id="event-example-appointment",
+    )
+
+    departure = _make_company_event(
+        event_id="event-example-departure",
+        event_type=CompanyEventType.EXECUTIVE_DEPARTURE,
+    )
+
+    other_company = _make_company_event(
+        event_id="event-other-company",
+        company_id=CompanyId("company-other"),
+    )
+
+    repository.save(appointment)
+    repository.save(departure)
+    repository.save(other_company)
+
+    assert repository.find_by_company(CompanyId("company-example")) == (
+        appointment,
+        departure,
+    )
+
+
+def test_company_event_reposiotry_filters_company_by_event_type() -> None:
+    repository: CompanyEventRepository = InMemoryCompanyEventRepository()
+
+    appointment = _make_company_event(
+        event_id="event-example-appointment",
+    )
+
+    departure = _make_company_event(
+        event_id="event-example-departure",
+        event_type=CompanyEventType.EXECUTIVE_DEPARTURE,
+    )
+
+    repository.save(appointment)
+    repository.save(departure)
+
+    assert repository.find_by_company(
+        CompanyId("company-example"),
+        event_type=CompanyEventType.EXECUTIVE_DEPARTURE,
+    ) == (departure,)
+
+
+def test_company_event_repository_finds_events_by_executive() -> None:
+    repository: CompanyEventRepository = InMemoryCompanyEventRepository()
+
+    jane_event = _make_company_event()
+
+    other_event = _make_company_event(
+        event_id="event-other-executive",
+        executive_id=ExecutiveId("executive-other"),
+    )
+
+    repository.save(jane_event)
+    repository.save(other_event)
+
+    assert repository.find_by_executive(ExecutiveId("executive-jane-smith")) == (
+        jane_event,
+    )
+
+
+def test_company_event_repository_filters_executive_by_event_type() -> None:
+    repository: CompanyEventRepository = InMemoryCompanyEventRepository()
+
+    appointment = _make_company_event(
+        event_id="event-example-appointment",
+    )
+
+    departure = _make_company_event(
+        event_id="event-example-departure",
+        event_type=CompanyEventType.EXECUTIVE_DEPARTURE,
+    )
+
+    repository.save(appointment)
+    repository.save(departure)
+
+    assert repository.find_by_executive(
+        ExecutiveId("executive-jane-smith"),
+        event_type=CompanyEventType.EXECUTIVE_DEPARTURE,
+    ) == (departure,)
+
+
+def test_company_event_repository_finds_events_by_role() -> None:
+    repository: CompanyEventRepository = InMemoryCompanyEventRepository()
+
+    role_id = ExecutiveRoleId("role-example-ceo")
+
+    linked = _make_company_event(
+        event_id="event-linked-role",
+        role_id=role_id,
+    )
+
+    unlinked = _make_company_event(
+        event_id="event-unlinked-role",
+    )
+
+    repository.save(linked)
+    repository.save(unlinked)
+
+    assert repository.find_by_role(role_id) == (linked,)
+
+
+def test_company_event_repository_replaces_same_event_id() -> None:
+    repository: CompanyEventRepository = InMemoryCompanyEventRepository()
+
+    original = _make_company_event()
+
+    updated = replace(
+        original,
+        description=("Jane Smith was appointed President and Chied Executive Officer."),
+    )
+
+    repository.save(original)
+    repository.save(updated)
+
+    assert repository.get(original.event_id) == updated
