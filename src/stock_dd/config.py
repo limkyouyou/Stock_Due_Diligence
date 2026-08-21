@@ -12,6 +12,7 @@ from stock_dd.exceptions import ConfigurationError
 
 _FINANCIAL_API_KEY = "STOCK_DD_FINANCIAL_API_KEY"
 _RAW_DATA_DIRECTORY = "STOCK_DD_RAW_DATA_DIR"
+_DATABASE_PATH = "STOCK_DD_DATABASE_PATH"
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,6 +21,7 @@ class Settings:
 
     financial_api_key: str | None = field(repr=False)
     raw_data_directory: Path
+    database_path: Path
 
     def require_financial_api_key(self) -> str:
         """Return the financial API key or raise a configurationi error."""
@@ -55,9 +57,14 @@ def load_settings(
 
     raw_data_directory = _clean_optional(values.get(_RAW_DATA_DIRECTORY)) or "data/raw"
 
+    database_path = (
+        _clean_optional(values.get(_DATABASE_PATH)) or "data/stock_dd.sqlite3"
+    )
+
     return Settings(
         financial_api_key=_clean_optional(values.get(_FINANCIAL_API_KEY)),
         raw_data_directory=Path(raw_data_directory),
+        database_path=Path(database_path),
     )
 
 
