@@ -105,7 +105,8 @@ def test_require_financial_api_key_raises_when_missing() -> None:
 
 def test_settings_repr_does_not_expose_api_key() -> None:
     settings = Settings(
-        financial_api_key="secret-value", raw_data_directory=Path("data/raw"),
+        financial_api_key="secret-value",
+        raw_data_directory=Path("data/raw"),
         database_path=Path("data/stock_dd.sqlite3"),
     )
 
