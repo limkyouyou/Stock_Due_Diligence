@@ -36,7 +36,7 @@ def transaction(
 
     if connection.in_transaction:
         raise RuntimeError(
-            "Cannot start a transaction while snother transaction is already active."
+            "Cannot start a transaction while another transaction is already active."
         )
 
     connection.execute("BEGIN")
