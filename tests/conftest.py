@@ -1,4 +1,4 @@
-"""Shared pytest fictures for Stock DD MAS tests."""
+"""Shared pytest fixtures for Stock DD MAS tests."""
 
 from pathlib import Path
 

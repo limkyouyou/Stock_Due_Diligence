@@ -24,7 +24,7 @@ class Settings:
     database_path: Path
 
     def require_financial_api_key(self) -> str:
-        """Return the financial API key or raise a configurationi error."""
+        """Return the financial API key or raise a configuration error."""
 
         if self.financial_api_key is None:
             raise ConfigurationError(

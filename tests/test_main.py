@@ -183,7 +183,7 @@ def test_main_runs_live_pipeline(
         lambda: Settings(
             financial_api_key="test-key",
             raw_data_directory=tmp_path / "raw",
-            database_path=Path("data/stock_dd.sqlite3"),
+            database_path=tmp_path / "stock_dd.sqlite3",
         ),
     )
 
