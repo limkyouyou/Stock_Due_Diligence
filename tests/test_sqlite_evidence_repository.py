@@ -142,7 +142,7 @@ def test_sqlite_evidence_source_repository_replaces_same_source_id(
     updated = EvidenceSource(
         source_id=original.source_id,
         source_type=original.source_type,
-        title="Updated Filing Tile",
+        title="Updated Filing Title",
         publisher=original.publisher,
         retrieved_at=original.retrieved_at,
         published_on=original.published_on,

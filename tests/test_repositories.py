@@ -667,7 +667,7 @@ def test_evidence_source_repository_replaces_same_source_id() -> None:
     updated = EvidenceSource(
         source_id=original.source_id,
         source_type=original.source_type,
-        title="Updated Source Tile",
+        title="Updated Source Title",
         publisher=original.publisher,
         retrieved_at=original.retrieved_at,
     )

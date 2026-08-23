@@ -1,6 +1,7 @@
 """Test for SQLite schema initialization."""
 
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 import pytest
@@ -14,7 +15,7 @@ from stock_dd.storage.sqlite_schema import (
 def test_initializa_schema_creates_expected_tables(
     sqlite_database_path: Path,
 ) -> None:
-    with sqlite3.connect(sqlite_database_path) as connection:
+    with closing(sqlite3.connect(sqlite_database_path)) as connection:
         initialize_schema(connection)
 
         rows = connection.execute(
@@ -51,7 +52,7 @@ def test_initializa_schema_creates_expected_tables(
 def test_initialize_schema_records_schema_version(
     sqlite_database_path: Path,
 ) -> None:
-    with sqlite3.connect(sqlite_database_path) as connection:
+    with closing(sqlite3.connect(sqlite_database_path)) as connection:
         initialize_schema(connection)
 
         row = connection.execute(
@@ -68,7 +69,7 @@ def test_initialize_schema_records_schema_version(
 def test_initialize_schema_can_run_multiple_times(
     sqlite_database_path: Path,
 ) -> None:
-    with sqlite3.connect(sqlite_database_path) as connection:
+    with closing(sqlite3.connect(sqlite_database_path)) as connection:
         initialize_schema(connection)
         initialize_schema(connection)
 
@@ -86,7 +87,7 @@ def test_initialize_schema_can_run_multiple_times(
 def test_companies_require_unique_cik(
     sqlite_database_path: Path,
 ) -> None:
-    with sqlite3.connect(sqlite_database_path) as connection:
+    with closing(sqlite3.connect(sqlite_database_path)) as connection:
         initialize_schema(connection)
 
         connection.execute(
@@ -126,7 +127,7 @@ def test_companies_require_unique_cik(
 def test_company_listing_rejects_invalidity_range(
     sqlite_database_path: Path,
 ) -> None:
-    with sqlite3.connect(sqlite_database_path) as connection:
+    with closing(sqlite3.connect(sqlite_database_path)) as connection:
         initialize_schema(connection)
 
         connection.execute(
@@ -172,7 +173,7 @@ def test_company_listing_rejects_invalidity_range(
 def test_executive_role_rejects_day_without_month(
     sqlite_database_path: Path,
 ) -> None:
-    with sqlite3.connect(sqlite_database_path) as connection:
+    with closing(sqlite3.connect(sqlite_database_path)) as connection:
         initialize_schema(connection)
 
         connection.execute(
