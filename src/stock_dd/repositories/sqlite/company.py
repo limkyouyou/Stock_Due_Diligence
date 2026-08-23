@@ -67,7 +67,7 @@ class SQLiteCompanyRepository:
         self,
         company_id: CompanyId,
     ) -> CompanyIdentity | None:
-        """Reutrn a company by its internal identifier."""
+        """Return a company by its internal identifier."""
 
         row = self._connection.execute(
             """
