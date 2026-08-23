@@ -88,7 +88,7 @@ class InMemoryEvidenceSourceRepository:
         self,
         source_id: EvidenceSourceId,
     ) -> EvidenceSource | None:
-        """Reutrn a stored source by its internal identifier."""
+        """Return a stored source by its internal identifier."""
 
         return self._source.get(source_id)
 

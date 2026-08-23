@@ -68,7 +68,7 @@ def test_sqlite_company_repository_finds_company_by_cik(
         assert repository.find_by_cik("0000320193") == company
 
 
-def test_sqlite_company_repository_returns_none_for_midding_company(
+def test_sqlite_company_repository_returns_none_for_missing_company(
     sqlite_database_path: Path,
 ) -> None:
     with open_sqlite_database(sqlite_database_path) as connection:
