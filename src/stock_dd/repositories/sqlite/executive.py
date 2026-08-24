@@ -59,7 +59,7 @@ class SQLiteExecutiveRepository:
                     alternate_name,
                 )
                 for name_order, alternate_name in enumerate(executive.alternate_names)
-            )
+            ),
         )
 
         self._connection.execute(
@@ -110,7 +110,8 @@ class SQLiteExecutiveRepository:
             (executive_id,),
         ).fetchone()
 
-        if row is None: return None
+        if row is None:
+            return None
 
         return self._executive_from_row(row)
 
@@ -148,15 +149,14 @@ class SQLiteExecutiveRepository:
         return Executive(
             executive_id=executive_id,
             full_name=row["full_name"],
-            alternate_names=tuple(alternate_row["alternamte_name"] for alternate_row in altername_name_rows),
+            alternate_names=tuple(
+                alternate_row["alternamte_name"]
+                for alternate_row in altername_name_rows
+            ),
             citations=tuple(
                 EvidenceCitation(
-                    source_id=EvidenceSourceId(
-                        citation_row["source_id"]
-                    ),
-                    supporting_excerpt=(
-                        citation_row["supporting_excerpt"]
-                    ),
+                    source_id=EvidenceSourceId(citation_row["source_id"]),
+                    supporting_excerpt=(citation_row["supporting_excerpt"]),
                     location=citation_row["location"],
                 )
                 for citation_row in citation_rows
