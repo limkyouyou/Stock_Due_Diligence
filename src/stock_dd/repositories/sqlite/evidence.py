@@ -80,7 +80,7 @@ def _deserialize_candidate_value(
         return decoded
 
     if value_type == "int":
-        if not isinstance(decoded, int):
+        if not isinstance(decoded, int) or isinstance(decoded, bool):
             raise ValueError("Stored candidate integer is invalid")
 
         return decoded
@@ -534,7 +534,9 @@ class SQLiteCandidateEvidenceRepository:
             verification_status=VerificationStatus(row["verification_status"]),
             extraction_confidence=row["extraction_confidence"],
             rejection_reason=row["rejection_reason"],
-            company_id=row["company_id"],
+            company_id=(
+                CompanyId(row["company_id"]) if row["company_id"] is not None else None
+            ),
             executive_id=(
                 ExecutiveId(row["executive_id"])
                 if row["executive_id"] is not None
