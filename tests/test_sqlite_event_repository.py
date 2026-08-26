@@ -292,3 +292,51 @@ def test_sqlite_company_event_repository_does_not_commit_own_transaction(
                 raise RuntimeError("force rollback")
 
         assert repository.get(event.event_id) is None
+
+
+def test_sqlite_company_event_repository_finds_events_by_executive(
+    sqlite_database_path: Path,
+) -> None:
+    event = _make_company_event()
+
+    with open_sqlite_database(sqlite_database_path) as connection:
+        initialize_schema(connection)
+
+        with transaction(connection):
+            _insert_company(connection)
+            _insert_executive(connection)
+            _insert_evidence_source(connection)
+
+        repository = SQLiteCompanyEventRepository(connection)
+
+        with transaction(connection):
+            repository.save(event)
+
+        assert repository.find_by_executive(ExecutiveId("executive-jane-smith")) == (
+            event,
+        )
+
+
+def test_sqlite_company_event_repository_finds_events_by_role(
+    sqlite_database_path: Path,
+) -> None:
+    role_id = ExecutiveRoleId("role-example-ceo")
+    event = _make_company_event(
+        related_role_ids=(role_id,),
+    )
+
+    with open_sqlite_database(sqlite_database_path) as connection:
+        initialize_schema(connection)
+
+        with transaction(connection):
+            _insert_company(connection)
+            _insert_executive(connection)
+            _insert_evidence_source(connection)
+            _insert_role(connection)
+
+        repository = SQLiteCompanyEventRepository(connection)
+
+        with transaction(connection):
+            repository.save(event)
+
+        assert repository.find_by_role(role_id) == (event,)

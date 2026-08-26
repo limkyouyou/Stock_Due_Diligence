@@ -402,7 +402,7 @@ CREATE TABLE IF NOT EXISTS company_event_executives (
         CHECK (executive_order >= 0),
     executive_id TEXT NOT NULL,
 
-    PRIMARY KEY (event_id, executive_id),
+    PRIMARY KEY (event_id, executive_order),
     UNIQUE (event_id, executive_id),
 
     FOREIGN KEY (event_id)
@@ -423,7 +423,7 @@ CREATE TABLE IF NOT EXISTS company_event_roles (
         CHECK (role_order >= 0),
     role_id TEXT NOT NULL,
 
-    PRIMARY KEY (event_id, role_id),
+    PRIMARY KEY (event_id, role_order),
     UNIQUE (event_id, role_id),
 
     FOREIGN KEY (event_id)
