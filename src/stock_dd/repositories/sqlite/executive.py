@@ -2,7 +2,6 @@
 
 import sqlite3
 from datetime import date
-from typing import cast
 
 from stock_dd.models import (
     CareerPosition,
@@ -15,48 +14,11 @@ from stock_dd.models import (
     ExecutiveRole,
     ExecutiveRoleId,
     ExecutiveRoleType,
-    PartialDate,
 )
-
-
-def _partial_date_to_columns(
-    value: PartialDate | None,
-) -> tuple[int | None, int | None, int | None]:
-    """Convert a partial date into SQLite column values."""
-
-    if value is None:
-        return None, None, None
-
-    return value.year, value.month, value.day
-
-
-def _partial_date_from_row(
-    row: sqlite3.Row,
-    prefix: str,
-) -> PartialDate | None:
-    """Reconstruct a partial date from SQLite columns."""
-
-    year = cast(
-        int | None,
-        row[f"{prefix}_year"],
-    )
-    month = cast(
-        int | None,
-        row[f"{prefix}_month"],
-    )
-    day = cast(
-        int | None,
-        row[f"{prefix}_day"],
-    )
-
-    if year is None:
-        return None
-
-    return PartialDate(
-        year=year,
-        month=month,
-        day=day,
-    )
+from stock_dd.repositories.sqlite._dates import (
+    partial_date_from_row,
+    partial_date_to_columns,
+)
 
 
 class SQLiteExecutiveRepository:
@@ -225,13 +187,13 @@ class SQLiteExecutiveRoleRepository:
             started_year,
             started_month,
             started_day,
-        ) = _partial_date_to_columns(role.started_on)
+        ) = partial_date_to_columns(role.started_on)
 
         (
             ended_year,
             ended_month,
             ended_day,
-        ) = _partial_date_to_columns(role.ended_on)
+        ) = partial_date_to_columns(role.ended_on)
 
         self._connection.execute(
             """
@@ -465,8 +427,8 @@ class SQLiteExecutiveRoleRepository:
                 )
                 for citation_row in citation_rows
             ),
-            started_on=_partial_date_from_row(row, "started"),
-            ended_on=_partial_date_from_row(row, "ended"),
+            started_on=partial_date_from_row(row, "started"),
+            ended_on=partial_date_from_row(row, "ended"),
             appointment_announced_on=(
                 date.fromisoformat(row["appointment_announced_on"])
                 if row["appointment_announced_on"] is not None
@@ -494,13 +456,13 @@ class SQLiteCareerPositionRepository:
             started_year,
             started_month,
             started_day,
-        ) = _partial_date_to_columns(position.started_on)
+        ) = partial_date_to_columns(position.started_on)
 
         (
             ended_year,
             ended_month,
             ended_day,
-        ) = _partial_date_to_columns(position.ended_on)
+        ) = partial_date_to_columns(position.ended_on)
 
         self._connection.execute(
             """
@@ -693,11 +655,11 @@ class SQLiteCareerPositionRepository:
                 if row["employer_company_id"] is not None
                 else None
             ),
-            started_on=_partial_date_from_row(
+            started_on=partial_date_from_row(
                 row,
                 "started",
             ),
-            ended_on=_partial_date_from_row(
+            ended_on=partial_date_from_row(
                 row,
                 "ended",
             ),

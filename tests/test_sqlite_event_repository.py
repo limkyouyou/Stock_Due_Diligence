@@ -1,0 +1,294 @@
+"""Tests for SQLite company-event repository implementation."""
+
+import sqlite3
+from dataclasses import replace
+from datetime import date
+from pathlib import Path
+
+import pytest
+
+from stock_dd.models import (
+    CompanyEvent,
+    CompanyEventId,
+    CompanyEventType,
+    CompanyId,
+    EvidenceCitation,
+    EvidenceSourceId,
+    ExecutiveId,
+    ExecutiveRoleId,
+    PartialDate,
+)
+from stock_dd.repositories import CompanyEventRepository
+from stock_dd.repositories.sqlite import (
+    SQLiteCompanyEventRepository,
+)
+from stock_dd.storage.sqlite_connection import (
+    open_sqlite_database,
+    transaction,
+)
+from stock_dd.storage.sqlite_schema import initialize_schema
+
+
+def _insert_company(
+    connection: sqlite3.Connection,
+) -> None:
+    connection.execute(
+        """
+        INSERT INTO companies (
+            company_id,
+            legal_name,
+            cik
+        )
+        VALUES (?, ?, ?)
+        """,
+        (
+            "company-example",
+            "Example Corporation",
+            "0000000001",
+        ),
+    )
+
+
+def _insert_executive(
+    connection: sqlite3.Connection,
+    *,
+    executive_id: str = "executive-jane-smith",
+) -> None:
+    connection.execute(
+        """
+        INSERT INTO executives (
+            executive_id,
+            full_name
+        )
+        VALUES (?, ?)
+        """,
+        (
+            executive_id,
+            "Jane Smith",
+        ),
+    )
+
+
+def _insert_evidence_source(
+    connection: sqlite3.Connection,
+    *,
+    source_id: str = "source-company-event",
+) -> None:
+    connection.execute(
+        """
+        INSERT INTO evidence_sources (
+            source_id,
+            source_type,
+            title,
+            publisher,
+            retrieved_at
+        )
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (
+            source_id,
+            "company_document",
+            "Leadership Announcement",
+            "Example Corporation",
+            "2026-08-26T12:00:00-04:00",
+        ),
+    )
+
+
+def _insert_role(
+    connection: sqlite3.Connection,
+    *,
+    role_id: str = "role-example-ceo",
+) -> None:
+    connection.execute(
+        """
+        INSERT INTO executive_roles (
+            role_id,
+            company_id,
+            executive_id,
+            role_type,
+            reported_title
+        )
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (
+            role_id,
+            "company-example",
+            "executive-jane-smith",
+            "chief_executive_officer",
+            "Chief Executive Officer",
+        ),
+    )
+
+
+def _make_company_event(
+    *,
+    event_id: str = "event-jane-appointed",
+    event_type: CompanyEventType = CompanyEventType.EXECUTIVE_APPOINTMENT,
+    related_executive_ids: tuple[ExecutiveId, ...] | None = None,
+    related_role_ids: tuple[ExecutiveRoleId, ...] = (),
+) -> CompanyEvent:
+    return CompanyEvent(
+        event_id=CompanyEventId(event_id),
+        company_id=CompanyId("company-example"),
+        event_type=event_type,
+        description="Jane Smith was appointed Chief Executive Officer.",
+        citations=(
+            EvidenceCitation(
+                source_id=EvidenceSourceId("source-company-event"),
+                supporting_excerpt="Jane Smith was appointed Chief Executive Officer.",
+                location="Leadership announcement",
+            ),
+        ),
+        announced_on=date(2022, 6, 15),
+        occurred_on=PartialDate(
+            year=2022,
+            month=7,
+        ),
+        related_executive_ids=(ExecutiveId("executive-jane-smith"),)
+        if related_executive_ids is None
+        else related_executive_ids,
+        related_role_ids=related_role_ids,
+    )
+
+
+def test_sqlite_company_event_repository_satisfies_contract(
+    sqlite_database_path: Path,
+) -> None:
+    with open_sqlite_database(sqlite_database_path) as connection:
+        initialize_schema(connection)
+
+        repository = SQLiteCompanyEventRepository(connection)
+
+        assert isinstance(repository, CompanyEventRepository)
+
+
+def test_sqlite_company_event_repository_round_trips_event(
+    sqlite_database_path: Path,
+) -> None:
+    role_id = ExecutiveRoleId("role-example-ceo")
+
+    event = _make_company_event(
+        related_role_ids=(role_id,),
+    )
+
+    with open_sqlite_database(sqlite_database_path) as connection:
+        initialize_schema(connection)
+
+        with transaction(connection):
+            _insert_company(connection)
+            _insert_executive(connection)
+            _insert_evidence_source(connection)
+            _insert_role(connection)
+
+        repository = SQLiteCompanyEventRepository(connection)
+
+        with transaction(connection):
+            repository.save(event)
+
+        assert repository.get(event.event_id) == event
+
+
+def test_sqlite_company_event_repository_returns_none_for_missing_event(
+    sqlite_database_path: Path,
+) -> None:
+    with open_sqlite_database(sqlite_database_path) as connection:
+        initialize_schema(connection)
+
+        repository = SQLiteCompanyEventRepository(connection)
+
+        assert repository.get(CompanyEventId("event-missing")) is None
+
+
+def test_sqlite_company_event_repository_filters_company_by_type(
+    sqlite_database_path: Path,
+) -> None:
+    appointment = _make_company_event(event_id="event-a-appointment")
+
+    departure = _make_company_event(
+        event_id="event-b-departure",
+        event_type=CompanyEventType.EXECUTIVE_DEPARTURE,
+    )
+
+    with open_sqlite_database(sqlite_database_path) as connection:
+        initialize_schema(connection)
+
+        with transaction(connection):
+            _insert_company(connection)
+            _insert_executive(connection)
+            _insert_evidence_source(connection)
+
+        repository = SQLiteCompanyEventRepository(connection)
+
+        with transaction(connection):
+            repository.save(appointment)
+            repository.save(departure)
+
+        assert repository.find_by_company(CompanyId("company-example")) == (
+            appointment,
+            departure,
+        )
+
+        assert repository.find_by_company(
+            CompanyId("company-example"),
+            event_type=CompanyEventType.EXECUTIVE_DEPARTURE,
+        ) == (departure,)
+
+
+def test_sqlite_company_event_repository_replaces_related_records(
+    sqlite_database_path: Path,
+) -> None:
+    original = _make_company_event(
+        related_role_ids=(ExecutiveRoleId("role-example-ceo"),),
+    )
+
+    updated = replace(
+        original,
+        description="Jane Smith changed executive roles.",
+        event_type=CompanyEventType.EXECUTIVE_ROLE_CHANGE,
+        occurred_on=PartialDate(year=2022),
+        related_role_ids=(),
+    )
+
+    with open_sqlite_database(sqlite_database_path) as connection:
+        initialize_schema(connection)
+
+        with transaction(connection):
+            _insert_company(connection)
+            _insert_executive(connection)
+            _insert_evidence_source(connection)
+            _insert_role(connection)
+
+        repository = SQLiteCompanyEventRepository(connection)
+
+        with transaction(connection):
+            repository.save(original)
+
+        with transaction(connection):
+            repository.save(updated)
+
+        assert repository.get(original.event_id) == updated
+
+
+def test_sqlite_company_event_repository_does_not_commit_own_transaction(
+    sqlite_database_path: Path,
+) -> None:
+    event = _make_company_event()
+
+    with open_sqlite_database(sqlite_database_path) as connection:
+        initialize_schema(connection)
+
+        with transaction(connection):
+            _insert_company(connection)
+            _insert_executive(connection)
+            _insert_evidence_source(connection)
+
+        repository = SQLiteCompanyEventRepository(connection)
+
+        with pytest.raises(RuntimeError):
+            with transaction(connection):
+                repository.save(event)
+
+                raise RuntimeError("force rollback")
+
+        assert repository.get(event.event_id) is None

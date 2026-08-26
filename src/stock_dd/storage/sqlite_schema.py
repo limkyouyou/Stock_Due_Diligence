@@ -398,9 +398,12 @@ CREATE TABLE IF NOT EXISTS company_event_citations (
 
 CREATE TABLE IF NOT EXISTS company_event_executives (
     event_id TEXT NOT NULL,
+    executive_order INTEGER NOT NULL
+        CHECK (executive_order >= 0),
     executive_id TEXT NOT NULL,
 
     PRIMARY KEY (event_id, executive_id),
+    UNIQUE (event_id, executive_id),
 
     FOREIGN KEY (event_id)
         REFERENCES company_events(event_id)
@@ -416,9 +419,12 @@ CREATE INDEX IF NOT EXISTS idx_company_event_executives_executive
 
 CREATE TABLE IF NOT EXISTS company_event_roles (
     event_id TEXT NOT NULL,
+    role_order INTEGER NOT NULL
+        CHECK (role_order >= 0),
     role_id TEXT NOT NULL,
 
     PRIMARY KEY (event_id, role_id),
+    UNIQUE (event_id, role_id),
 
     FOREIGN KEY (event_id)
         REFERENCES company_events(event_id)

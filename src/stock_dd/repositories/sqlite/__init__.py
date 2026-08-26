@@ -3,6 +3,9 @@
 from stock_dd.repositories.sqlite.company import (
     SQLiteCompanyRepository as SQLiteCompanyRepository,
 )
+from stock_dd.repositories.sqlite.event import (
+    SQLiteCompanyEventRepository as SQLiteCompanyEventRepository,
+)
 from stock_dd.repositories.sqlite.evidence import (
     SQLiteCandidateEvidenceRepository as SQLiteCandidateEvidenceRepository,
 )
