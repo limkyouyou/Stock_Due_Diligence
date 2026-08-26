@@ -1,8 +1,8 @@
 # Stock DD MAS
 
-Stock DD MAS is a modular stock due-diligence research application intended to help organize evidence about a public company, evaluate the quality and durability of the business, estimate an intrinsic-value range, and compare that estimate with the market price.
+Stock DD MAS is a modular stock due-diligence research application for organizing evidence about public companies, assessing business and management quality, estimating an intrinsic-value range, and eventually comparing that range with the market price.
 
-The project is currently in **alpha development**. It is a portfolio/learning project and is being built incrementally with practical industry-standard Python practices: typed domain models, provider-independent interfaces, explicit validation, test coverage, CI, raw-source preservation, and evidence traceability.
+The project is in **early development** and is being built incrementally as a portfolio/learning project using practical industry-standard Python practices: typed domain models, provider-independent interfaces, explicit validation, repository boundaries, SQLite persistence, test coverage, CI, raw-source preservation, and evidence traceability.
 
 > **Important:** Stock DD MAS is a research tool under development. Its outputs are not financial advice and should not be treated as a recommendation to buy or sell a security.
 
@@ -18,17 +18,21 @@ Use these names consistently:
 - **Current package version:** `0.1.0`
 - **Python version used for development:** **3.14.2**
 
-The repository name may still contain `Stock_Due_Diligence`, but application and code references should use the names above.
+The GitHub repository is currently named `Stock_Due_Diligence`, but application and code references should use the names above.
+
+Repository:
+
+```text
+https://github.com/limkyouyou/Stock_Due_Diligence
+```
 
 ---
 
 ## Current platform support
 
-### Supported development platform
+### Supported contributor environment
 
-This alpha version currently supports **Windows only** for contributor setup and manual development.
-
-The expected local environment is:
+The current development setup officially supports **Windows only**:
 
 - Windows 11
 - PowerShell
@@ -36,23 +40,23 @@ The expected local environment is:
 - Git
 - VS Code or another Python-capable editor
 
-Linux and macOS are **not currently supported contributor environments**. They may work, but platform-specific behavior has not been validated and contributors should not assume compatibility.
+Linux and macOS are not currently validated contributor environments. They may work, but contributors should not assume platform-specific compatibility.
 
-GitHub Actions currently executes automated quality checks on Ubuntu. This is useful as an additional compatibility signal, but it does **not** mean Linux is an officially supported local-development platform for this alpha version.
+GitHub Actions runs automated quality checks on Ubuntu. This provides an additional compatibility signal but does not make Linux an officially supported local-development environment.
 
 ---
 
 ## Current project status
 
-The original financial-data foundation is working.
+The original financial-data foundation is working, and the first management-research persistence foundation is now implemented.
 
-### Completed
+### Completed financial foundation
 
 - `src`-layout Python package
 - `pyproject.toml` packaging
 - editable installation
-- offline JSON research-data loader and validation
-- typed dataclass domain models
+- offline JSON research-data loading and validation
+- typed dataclass models
 - financial calculations:
   - revenue growth
   - operating margin
@@ -68,68 +72,108 @@ The original financial-data foundation is working.
 - central application exceptions
 - configurable logging
 - `.env`-based configuration
+
+### Completed engineering foundation
+
 - Ruff linting and formatting
 - strict mypy type checking
 - pytest
 - branch coverage with a minimum threshold of 90%
 - GitHub Actions CI
-- management-research requirements
+- isolated SQLite test databases
+- explicit SQLite connection management
+- caller-owned SQLite transactions
+- SQLite foreign-key enforcement
+
+### Completed management-research foundation
+
+- management-research requirements document
 - management-research domain models
-- company and company-listing repository contracts
+- typed internal identifiers
+- `PartialDate` for incomplete dates
+- evidence-source and candidate-evidence models
+- company and listing identity models
+- executive, role, and career-position models
+- company-event model
+- provider-independent repository contracts
+- SQLite schema version 1
+- eight concrete SQLite repository implementations:
+  - `SQLiteCompanyRepository`
+  - `SQLiteCompanyListingRepository`
+  - `SQLiteEvidenceSourceRepository`
+  - `SQLiteCandidateEvidenceRepository`
+  - `SQLiteExecutiveRepository`
+  - `SQLiteExecutiveRoleRepository`
+  - `SQLiteCareerPositionRepository`
+  - `SQLiteCompanyEventRepository`
 
-### Current development area
+The persistence layer preserves evidence citations, historical listing validity, partial-date precision, executive/event relationships, and ordered child collections where order is part of the domain representation.
 
-The current design work is the **management-research foundation**.
+---
 
-At the time of writing, the active development branch is:
+## Active development branch
+
+At the time of writing, active management-research development is on:
 
 ```text
 feature/management-research-foundation
 ```
 
-Before beginning work, check the repository to confirm which branch is currently designated for active development.
+Before beginning work, confirm that this is still the active branch and inspect its latest code rather than assuming `main` is current.
 
-The immediate architectural sequence is:
+---
+
+## Immediate development sequence
+
+The repository contracts and first SQLite implementations are complete.
+
+The immediate sequence is now:
 
 ```text
-Repository contracts
+SQLite persistence integration test
     ↓
-SQLite persistence
+Provider-independent SEC/company collection interfaces
     ↓
-Provider-independent SEC collection interfaces
+SEC company identity resolution
     ↓
-SEC collection and raw filing storage
+SEC filing discovery
+    ↓
+Raw SEC filing storage
+    ↓
+Structured management-data extraction
     ↓
 Unstructured research-agent interface
     ↓
 Candidate evidence
     ↓
-Evidence validation
+Evidence validation / conflict handling
     ↓
-Trusted management records
+Promotion to trusted management records
     ↓
 Management research packet/report
     ↓
 Later scoring and valuation integration
 ```
 
-The detailed management-research specification is in:
+Do not skip directly to a research agent or management score before the collection, evidence, and validation boundaries are in place.
+
+The detailed management-research specification is:
 
 ```text
 docs/management-research-requirements.md
 ```
 
-Read that file before making changes to management-related models, storage, collection, or scoring.
+Read that file before changing management-related models, storage, collection, validation, or scoring.
 
 ---
 
 ## Long-term objective
 
-Stock DD MAS is intended to produce three different outputs.
+Stock DD MAS is intended to produce three broad outputs.
 
 ### 1. Company-quality assessment
 
-Evaluate how solid the company appears using evidence such as:
+Evaluate how solid a company appears using evidence such as:
 
 - financial performance
 - management quality
@@ -141,19 +185,17 @@ Evaluate how solid the company appears using evidence such as:
 
 ### 2. Estimated intrinsic-value range
 
-The application should eventually estimate a defensible **range** rather than claiming to know one exact "true value."
+The application should eventually estimate a defensible **range** rather than claim one exact "true value."
 
 ### 3. Market comparison
 
-The estimated intrinsic-value range can eventually be compared with the current market price together with confidence, assumptions, and supporting evidence.
+The intrinsic-value range can later be compared with market price together with assumptions, uncertainty, confidence, and supporting evidence.
 
-Management quality must not mechanically add or subtract an arbitrary dollar amount from valuation.
+Management quality should contribute evidence to investment analysis. It should not mechanically add or subtract an arbitrary dollar amount from valuation.
 
 ---
 
 ## Current financial pipeline
-
-The live financial pipeline currently looks like this:
 
 ```text
 Ticker
@@ -173,7 +215,7 @@ Financial calculations
 Markdown report
 ```
 
-The provider-specific collector is intentionally separated from normalized application models.
+Provider-specific response structures are intentionally isolated from normalized application models.
 
 ---
 
@@ -183,39 +225,35 @@ Management research uses two collection lanes.
 
 ### Structured-data lane
 
-Used for information available in predictable structured or semi-structured formats.
-
-Examples:
+Used for predictable structured or semi-structured information, including:
 
 - company identifiers
-- financial statements
 - SEC filing metadata
+- financial statements
 - capital expenditures
 - debt issuance and repayment
 - dividends
 - share repurchases
 - share issuance
-- structured insider ownership/transaction data
+- structured insider ownership and transaction data
 
 ### Unstructured-research lane
 
-Used for narrative documents and webpages.
-
-Examples:
+Used for narrative documents and webpages, including:
 
 - executive biographies
 - previous career positions
 - management guidance
 - company milestones
 - setbacks
-- explanations for executive departures
+- executive appointment/departure explanations
 - governance concerns
 - company announcements
 - reputable independent reporting
 
-The unstructured lane may eventually use a research agent, but agent output is **not automatically trusted data**.
+A future research agent may assist the unstructured lane, but agent output is **not automatically trusted data**.
 
-The intended flow is:
+Intended flow:
 
 ```text
 External source
@@ -233,29 +271,34 @@ Trusted normalized domain records
 Analysis
 ```
 
-Do not create a design where an agent searches the web and directly assigns a management score.
+A research agent should not search the web and directly assign a management score.
 
 ---
 
 ## Initial management-research scope
 
-The first management-research implementation is intentionally limited.
+### Companies
 
-Initial company coverage:
+Initial coverage is limited to:
 
 - US domestic publicly traded companies
 
-Initial executive coverage:
+### Executives
+
+Initial executive coverage focuses on:
 
 - current CEO
 - current CFO
 - recent CEO/CFO appointments and departures
 - available previous career history, primarily over the previous five years
 
-Initial trusted facts include:
+### Initial trusted facts
+
+Examples include:
 
 - company identity
 - SEC CIK
+- listing identity/history
 - executive identity
 - current role
 - role start/effective dates where disclosed
@@ -266,7 +309,9 @@ Initial trusted facts include:
 - departure events
 - source/evidence metadata
 
-The first implementation does **not** yet:
+### Not in the first implementation
+
+The initial management-research system does not yet:
 
 - calculate a final management-quality score
 - classify executives as "good" or "bad"
@@ -274,7 +319,7 @@ The first implementation does **not** yet:
 - perform complete compensation analysis
 - perform full board-governance scoring
 - automatically alter valuation assumptions
-- mine every website available
+- mine every available website
 
 ---
 
@@ -295,11 +340,9 @@ Preferred source order:
 7. discovery sources such as Wikipedia
 8. optional manually reviewed professional profiles
 
-Wikipedia can be useful for discovery, but it should not replace an available primary source.
+Discovery sources may help locate evidence but should not replace an available primary source.
 
-LinkedIn is **not a required automated source** for this project.
-
-When sources disagree, do not silently overwrite one value with another. Preserve the evidence and surface the conflict.
+When sources disagree, do not silently overwrite one value with another. Preserve evidence and surface the conflict.
 
 ---
 
@@ -307,9 +350,9 @@ When sources disagree, do not silently overwrite one value with another. Preserv
 
 Management research must eventually support an explicit `as_of_date`.
 
-A historical research run must not use information that became public after the requested date.
+A historical research run must not use information that became public after the requested cutoff.
 
-For example:
+Example:
 
 ```text
 Research as of: 2024-12-31
@@ -325,69 +368,28 @@ Preserve relevant dates separately when possible:
 - effective date
 - reporting period
 
-Do not invent exact dates when a source provides only a year or month. The domain layer includes `PartialDate` for this reason.
+Do not invent an exact day when a source provides only a year or month.
+
+`PartialDate` exists for this reason.
+
+Examples:
+
+```text
+2022
+2022-07
+2022-07-15
+```
+
+must remain distinguishable.
 
 ---
 
-## Repository structure
+## Domain model structure
 
-The important top-level directories are:
-
-```text
-.
-├── .github/
-│   └── workflows/
-├── data/
-│   └── samples/
-├── docs/
-├── reports/
-├── src/
-│   └── stock_dd/
-├── tests/
-├── .env.example
-├── .gitignore
-├── pyproject.toml
-└── README.md
-```
-
-The Python package currently includes:
+Important management-domain modules:
 
 ```text
-src/stock_dd/
-├── collectors/
-├── models/
-├── normalizers/
-├── repositories/
-├── storage/
-├── __init__.py
-├── __main__.py
-├── calculations.py
-├── config.py
-├── exceptions.py
-├── loader.py
-├── logging_config.py
-├── pipeline.py
-└── report.py
-```
-
-### `collectors/`
-
-External data collection.
-
-Provider-independent contracts should be defined before provider-specific network implementations.
-
-### `normalizers/`
-
-Convert provider-specific raw data into trusted Stock DD MAS domain models.
-
-### `models/`
-
-Typed application/domain models.
-
-Current model modules include:
-
-```text
-models/
+src/stock_dd/models/
 ├── __init__.py
 ├── company.py
 ├── dates.py
@@ -397,32 +399,193 @@ models/
 └── identifiers.py
 ```
 
-`models/__init__.py` is the public re-export surface. Application code should normally import public models from:
+`models/__init__.py` is the public re-export surface.
+
+Application code should normally prefer:
 
 ```python
 from stock_dd.models import CompanyIdentity, Executive
 ```
 
-rather than depending unnecessarily on a model's internal module location.
+over importing internal model modules directly.
 
-### `repositories/`
+### Important domain types
 
-Provider-independent persistence contracts.
+Company identity:
 
-Repository interfaces define what application logic needs without coupling it to SQLite or another database implementation.
+- `CompanyIdentity`
+- `CompanyListing`
+- `CompanyId`
+- `CompanyListingId`
 
-Current examples include:
+Evidence:
+
+- `EvidenceSource`
+- `EvidenceCitation`
+- `CandidateEvidence`
+- `EvidenceSourceId`
+- `CandidateEvidenceId`
+
+Management:
+
+- `Executive`
+- `ExecutiveRole`
+- `CareerPosition`
+- `ExecutiveId`
+- `ExecutiveRoleId`
+- `CareerPositionId`
+
+Events:
+
+- `CompanyEvent`
+- `CompanyEventId`
+
+Dates:
+
+- `PartialDate`
+- `DatePrecision`
+
+---
+
+## Repository boundary
+
+Provider-independent repository contracts live under:
+
+```text
+src/stock_dd/repositories/
+```
+
+Current contracts:
 
 ```text
 CompanyRepository
 CompanyListingRepository
+EvidenceSourceRepository
+CandidateEvidenceRepository
+ExecutiveRepository
+ExecutiveRoleRepository
+CareerPositionRepository
+CompanyEventRepository
 ```
 
-### `storage/`
+Application/service logic should depend on these contracts where practical rather than on SQLite-specific classes.
 
-Raw-provider data storage and other concrete storage concerns.
+Concrete SQLite implementations live under:
 
-Raw source data and normalized database data are intentionally different layers.
+```text
+src/stock_dd/repositories/sqlite/
+```
+
+---
+
+## SQLite persistence
+
+SQLite is now the first implemented normalized persistence backend.
+
+### Database path
+
+Default:
+
+```text
+data/stock_dd.sqlite3
+```
+
+Configurable with:
+
+```dotenv
+STOCK_DD_DATABASE_PATH=data/stock_dd.sqlite3
+```
+
+Local SQLite database files are ignored by Git.
+
+### Schema
+
+Schema initialization is defined in:
+
+```text
+src/stock_dd/storage/sqlite_schema.py
+```
+
+Current schema version:
+
+```text
+1
+```
+
+Important tables include:
+
+- companies
+- company alternate names
+- company listings
+- evidence sources
+- candidate evidence
+- executives
+- executive alternate names
+- executive citations
+- executive roles
+- executive-role citations
+- career positions
+- career-position citations
+- company events
+- company-event citations
+- company-event executive relationships
+- company-event role relationships
+
+### Partial dates
+
+Incomplete dates are stored as separate components:
+
+```text
+year
+month
+day
+```
+
+The persistence layer must not convert year-only or month-only dates into fake exact dates.
+
+Shared SQLite conversion helpers live in:
+
+```text
+src/stock_dd/repositories/sqlite/_dates.py
+```
+
+### Connection and transaction rules
+
+SQLite connection helpers live in:
+
+```text
+src/stock_dd/storage/sqlite_connection.py
+```
+
+Connections:
+
+- use `sqlite3.Row`
+- enable `PRAGMA foreign_keys = ON`
+- are explicitly closed
+
+Transactions are caller-owned.
+
+Repository implementations must **not** call `commit()` or start their own transaction.
+
+This allows multiple repository writes to participate in one atomic operation.
+
+### Repository `save()` semantics
+
+Repository `save()` methods are full-object upserts.
+
+For child tuples such as:
+
+```python
+event.related_executive_ids
+event.related_role_ids
+event.citations
+```
+
+the saved tuple is treated as the complete current representation, not as a partial patch.
+
+For example, to add an executive while preserving existing executives, higher-level logic should first load the existing event and construct the complete updated tuple.
+
+Merge/add/remove semantics belong in a future application/service layer rather than being guessed by generic repositories.
 
 ---
 
@@ -441,19 +604,21 @@ Examples:
 - extracted webpage text
 - future raw research-agent output
 
-Raw data should be preserved separately so normalization can be rerun without recollecting the source.
+Raw data should be preserved so normalization can be rerun without recollecting the source.
 
-Current raw data defaults to:
+Default raw-data directory:
 
 ```text
 data/raw/
 ```
 
-and is ignored by Git.
+It is ignored by Git.
 
 ### 2. Candidate evidence
 
-Information extracted by an agent or parser but not yet accepted as trusted fact.
+Information extracted by a parser or research agent but not yet accepted as trusted fact.
+
+`CandidateEvidence` preserves the extracted value, citation, extraction method, verification status, optional confidence, and optional links to known company/executive identities.
 
 ### 3. Normalized trusted data
 
@@ -467,9 +632,53 @@ Examples:
 - `CompanyEvent`
 - `EvidenceSource`
 
-Normalized linked records are planned to be stored in SQLite through repository interfaces.
+These records are now persistable in SQLite through repository interfaces.
 
-Application logic should operate on typed domain objects, not raw SQL rows.
+Application logic should operate on typed domain objects rather than raw SQL rows.
+
+---
+
+## Repository structure
+
+Important top-level paths:
+
+```text
+.
+├── .github/
+│   └── workflows/
+├── data/
+│   └── samples/
+├── docs/
+├── reports/
+├── src/
+│   └── stock_dd/
+├── tests/
+├── .env.example
+├── .gitignore
+├── pyproject.toml
+└── README.md
+```
+
+Important package areas:
+
+```text
+src/stock_dd/
+├── collectors/
+├── models/
+├── normalizers/
+├── repositories/
+│   └── sqlite/
+├── storage/
+├── __init__.py
+├── __main__.py
+├── calculations.py
+├── config.py
+├── exceptions.py
+├── loader.py
+├── logging_config.py
+├── pipeline.py
+└── report.py
+```
 
 ---
 
@@ -482,7 +691,7 @@ git clone https://github.com/limkyouyou/Stock_Due_Diligence.git
 cd Stock_Due_Diligence
 ```
 
-### 2. Switch to the current development branch
+### 2. Switch to the active development branch
 
 At the time of writing:
 
@@ -491,23 +700,21 @@ git switch feature/management-research-foundation
 git pull
 ```
 
-For future work, confirm the active development branch before starting.
+For future work, confirm the active branch before starting.
 
 ### 3. Confirm Python
-
-The project is developed using Python 3.14.2.
 
 ```powershell
 python --version
 ```
 
-Expected:
+Expected development version:
 
 ```text
 Python 3.14.2
 ```
 
-### 4. Create the virtual environment
+### 4. Create a virtual environment
 
 ```powershell
 python -m venv .venv
@@ -534,40 +741,39 @@ Do not change machine-wide execution policy just for this project.
 python -m pip install --upgrade pip
 ```
 
-### 7. Install the project in editable mode with development tools
+### 7. Install the project with development dependencies
 
 ```powershell
 python -m pip install --editable ".[dev]"
 ```
 
-Editable installation means changes under `src/stock_dd/` are immediately used by the active environment.
-
 ---
 
 ## Environment configuration
 
-Copy the example environment file:
+Copy:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Current variables:
+Current environment variables:
 
 ```dotenv
 STOCK_DD_FINANCIAL_API_KEY=
 STOCK_DD_RAW_DATA_DIR=data/raw
+STOCK_DD_DATABASE_PATH=data/stock_dd.sqlite3
 ```
 
 ### `STOCK_DD_FINANCIAL_API_KEY`
 
 Required for the live FMP financial-data pipeline.
 
-Do not commit real API keys.
+Never commit real API keys.
 
 ### `STOCK_DD_RAW_DATA_DIR`
 
-Controls where unmodified provider responses are stored.
+Directory for unmodified provider responses.
 
 Default:
 
@@ -575,7 +781,15 @@ Default:
 data/raw
 ```
 
-`.env`, `.env.*` except `.env.example`, generated reports, and collected raw provider data are ignored by Git.
+### `STOCK_DD_DATABASE_PATH`
+
+Path to the local SQLite database containing normalized application data.
+
+Default:
+
+```text
+data/stock_dd.sqlite3
+```
 
 ---
 
@@ -583,13 +797,13 @@ data/raw
 
 ### Offline mode
 
-Offline mode requires no API key.
+No API key required:
 
 ```powershell
 python -m stock_dd offline --input data/samples/northstar_robotics.json
 ```
 
-Optional output path:
+Optional output:
 
 ```powershell
 python -m stock_dd offline `
@@ -599,13 +813,13 @@ python -m stock_dd offline `
 
 ### Live financial mode
 
-Requires an FMP API key in `.env` or the process environment.
+Requires an FMP API key:
 
 ```powershell
 python -m stock_dd live --ticker AAPL
 ```
 
-Request a different number of annual periods:
+Request another annual period limit:
 
 ```powershell
 python -m stock_dd live --ticker AAPL --annual-limit 5
@@ -613,7 +827,7 @@ python -m stock_dd live --ticker AAPL --annual-limit 5
 
 ### Verbose logging
 
-`--verbose` is a global CLI option and should appear before the subcommand:
+`--verbose` is a global option and appears before the subcommand:
 
 ```powershell
 python -m stock_dd --verbose live --ticker AAPL
@@ -638,8 +852,6 @@ The project collects:
 - annual balance sheets
 - annual cash-flow statements
 
-The FMP normalizer converts provider responses into Stock DD MAS models.
-
 Important normalization rule:
 
 ```text
@@ -651,13 +863,13 @@ The annual financial-statement date is used as the financial report's `as_of_dat
 
 The raw collection timestamp is stored separately from the statement reporting date.
 
-FMP news is **not currently part of the project**. Do not assume access to paid FMP news endpoints.
+FMP news is not currently part of the project. Do not assume access to paid FMP news endpoints.
 
 ---
 
 ## Quality requirements
 
-All code changes should pass the same local quality checks before being pushed.
+Before pushing code:
 
 ```powershell
 python -m ruff format .
@@ -666,23 +878,28 @@ python -m mypy
 python -m pytest --cov=stock_dd --cov-branch --cov-report=term-missing
 ```
 
-Mypy is configured in strict mode.
+Requirements:
 
-Coverage includes branch coverage and must remain at or above:
+- Ruff formatting
+- Ruff linting
+- strict mypy
+- pytest
+- branch coverage
+- coverage of at least 90%
 
-```text
-90%
-```
-
-Do not rely only on CI to format code. Run Ruff formatting locally before committing.
+Do not rely on CI to format code.
 
 ---
 
 ## Continuous integration
 
-GitHub Actions runs quality checks for configured branches and pull requests.
+GitHub Actions currently runs quality checks for:
 
-CI currently checks:
+- pushes to `main`
+- pushes to `feature/management-research-foundation`
+- pull requests
+
+CI checks:
 
 - Ruff linting
 - Ruff formatting
@@ -697,7 +914,7 @@ A contribution should not be considered ready to merge while CI is failing.
 
 ### Keep provider-specific code behind interfaces
 
-For example:
+Example:
 
 ```text
 FinancialDataCollector
@@ -705,25 +922,23 @@ FinancialDataCollector
 FMPFinancialDataCollector
 ```
 
-The rest of the application should not depend directly on FMP response structures.
+Use the same design principle for SEC collection, research agents, and persistence.
 
-Use the same principle for future SEC collection, research agents, and persistence.
+### Define interfaces before provider/network implementations
 
-### Define interfaces before network code
-
-Do not begin a new provider implementation until the provider-independent contract is defined and tested.
+Do not begin a provider-specific network implementation until the application-facing contract is clear and tested.
 
 ### Keep raw data separate from normalized data
 
 Raw external responses should be preserved.
 
-Normalization converts those responses into trusted application models.
+Normalization converts provider-specific content into application-domain data.
 
 ### Do not let agents become the source of truth
 
-Future web-research agents should produce `CandidateEvidence`.
+Future research agents should produce `CandidateEvidence`.
 
-Validation and normalization decide whether a claim becomes a trusted record.
+Validation and promotion decide whether a claim becomes trusted data.
 
 ### Preserve evidence
 
@@ -747,17 +962,33 @@ The CEO caused the operating-margin increase.
 
 Do not invent values to fill gaps.
 
-Missing data and conflicting evidence should be preserved as such.
+Missing and conflicting information should remain visible.
 
-### Keep scoring out of the collection layer
+### Keep scoring out of collection
 
-Collection gathers evidence.
+```text
+Collection
+    ↓
+Normalization / extraction
+    ↓
+Validation
+    ↓
+Trusted evidence
+    ↓
+Analysis
+    ↓
+Scoring later
+```
 
-Normalization structures evidence.
+### Preserve identity boundaries
 
-Analysis interprets evidence.
+Do not assume two people are the same because their names match.
 
-Scoring comes later.
+Do not treat a free-text employer name as a resolved `CompanyIdentity`.
+
+### Preserve temporal precision
+
+Do not convert uncertain dates into fake exact dates.
 
 ---
 
@@ -768,19 +999,11 @@ Before starting a contribution:
 1. Pull the latest target branch.
 2. Read this README.
 3. Read relevant files under `docs/`.
-4. Inspect the existing implementation and tests before changing architecture.
-5. Confirm the next roadmap item or issue.
-6. Create a focused feature/fix branch.
+4. Inspect the current implementation and tests.
+5. Confirm the next roadmap item.
+6. Make a focused change.
 
-Example:
-
-```powershell
-git switch feature/management-research-foundation
-git pull
-git switch -c feature/evidence-repository
-```
-
-Use clear branch names such as:
+Branch naming examples:
 
 ```text
 feature/<short-description>
@@ -790,14 +1013,12 @@ test/<short-description>
 docs/<short-description>
 ```
 
-Keep commits focused.
-
-Examples:
+Commit examples:
 
 ```text
-feat: add evidence repository contract
-fix: handle missing filing date
-refactor: extract executive models
+feat: add SEC company collector contract
+fix: preserve company event relationship order
+refactor: extract SQLite date helpers
 test: cover historical ticker lookup
 docs: update collaborator setup
 ```
@@ -817,80 +1038,46 @@ Then:
 git status
 git add .
 git commit -m "..."
-git push -u origin <branch-name>
+git push
 ```
 
-Do not commit directly to `main` for collaborative feature work unless the project maintainer explicitly asks for it.
+Do not commit directly to `main` for normal collaborative feature work unless the maintainer explicitly requests it.
 
 ---
 
 ## Where a new collaborator should start
 
-### Step 1: Understand the current application
-
-Run:
+### Step 1: Run the existing application
 
 ```powershell
 python -m stock_dd offline --input data/samples/northstar_robotics.json
 ```
 
-Then inspect:
-
-```text
-src/stock_dd/pipeline.py
-src/stock_dd/models/
-src/stock_dd/collectors/
-src/stock_dd/normalizers/
-src/stock_dd/storage/
-tests/
-```
-
-### Step 2: Read the management-research requirements
-
-Read:
+### Step 2: Read the management requirements
 
 ```text
 docs/management-research-requirements.md
 ```
 
-This is the source of truth for the management-research design.
-
-### Step 3: Inspect repository contracts
-
-Read:
+### Step 3: Inspect the management domain and repositories
 
 ```text
+src/stock_dd/models/
 src/stock_dd/repositories/
+src/stock_dd/repositories/sqlite/
+src/stock_dd/storage/sqlite_schema.py
+src/stock_dd/storage/sqlite_connection.py
 ```
-
-The project is currently building the persistence boundary before adding SQLite.
 
 ### Step 4: Check the current roadmap item
 
-At the time of writing, work is progressing through repository contracts before SQLite persistence.
+At the time of writing, repository contracts and the first SQLite repository implementations are complete.
 
-Do not skip ahead to:
+The next planned engineering step is a persistence integration test before beginning SEC collection interfaces.
 
-- SQLite repository implementations
-- SEC network collection
-- a browsing/research agent
-- final management scoring
+### Step 5: Make a small, tested contribution
 
-unless the earlier boundary is already complete or the maintainer has explicitly changed the roadmap.
-
-### Step 5: Pick a small, testable contribution
-
-Good early contributions include:
-
-- repository protocol + contract tests
-- model validation tests
-- raw-storage improvements
-- documentation
-- deterministic normalization
-- test fixtures
-- targeted bug fixes
-
-A new contributor should avoid making a large cross-cutting architecture change as a first contribution.
+Avoid large cross-cutting architecture changes as a first contribution.
 
 ---
 
@@ -903,8 +1090,10 @@ A new contributor should avoid making a large cross-cutting architecture change 
 - [x] Live financial-data pipeline
 - [x] Management Research Requirements v0.1
 - [x] Management domain models
-- [ ] Complete repository contracts
-- [ ] SQLite persistence
+- [x] Repository contracts
+- [x] SQLite schema and transaction infrastructure
+- [x] SQLite repository implementations
+- [ ] Persistence integration test
 
 ### Structured management research
 
@@ -948,10 +1137,10 @@ A new contributor should avoid making a large cross-cutting architecture change 
 
 ```text
 README.md
-    Contributor orientation and local setup.
+    Contributor orientation, setup, architecture, and roadmap.
 
 docs/management-research-requirements.md
-    Detailed management-research requirements and design constraints.
+    Management-research requirements and design constraints.
 
 pyproject.toml
     Package metadata, dependencies, Ruff, mypy, pytest, and coverage settings.
@@ -959,29 +1148,32 @@ pyproject.toml
 .env.example
     Supported environment variables without real secrets.
 
-src/stock_dd/__main__.py
-    CLI entry point.
-
-src/stock_dd/pipeline.py
-    Offline and live pipeline orchestration.
-
 src/stock_dd/models/
     Typed domain models.
+
+src/stock_dd/repositories/
+    Provider-independent persistence contracts.
+
+src/stock_dd/repositories/sqlite/
+    Concrete SQLite repository implementations.
+
+src/stock_dd/storage/sqlite_schema.py
+    SQLite schema version and initialization.
+
+src/stock_dd/storage/sqlite_connection.py
+    SQLite connection and caller-owned transaction helpers.
 
 src/stock_dd/collectors/
     Provider-independent collection contracts and provider implementations.
 
 src/stock_dd/normalizers/
-    Provider-specific raw-data normalization.
+    Provider-specific normalization.
 
-src/stock_dd/repositories/
-    Provider-independent persistence contracts.
-
-src/stock_dd/storage/
-    Raw-data storage implementation.
+src/stock_dd/pipeline.py
+    Offline and live pipeline orchestration.
 
 tests/
-    Unit and contract tests.
+    Unit, contract, repository, and persistence tests.
 
 .github/workflows/ci.yml
     Automated quality checks.
@@ -997,19 +1189,18 @@ Never commit:
 - API keys
 - credentials
 - raw provider data under `data/raw/`
-- generated reports under `reports/`
+- local SQLite databases
+- generated reports
 - `.venv/`
 - coverage/cache files
 
-The committed `.env.example` is intentionally safe and contains no real credentials.
-
-Before pushing, always check:
+Before pushing:
 
 ```powershell
 git status
 ```
 
-If a secret is accidentally committed, removing it in a later commit is not sufficient because it remains in Git history. Notify the maintainer and rotate the credential.
+If a secret is accidentally committed, deleting it in a later commit does not remove it from Git history. Rotate the credential and address the history appropriately.
 
 ---
 
@@ -1017,21 +1208,22 @@ If a secret is accidentally committed, removing it in a later commit is not suff
 
 Before proposing an architectural change:
 
-1. Inspect the existing code.
-2. Identify the current abstraction boundary.
-3. Explain what problem the change solves.
-4. Prefer the smallest design that solves the current requirement.
-5. Add or update tests.
-6. Update documentation when behavior or architecture changes.
+1. inspect the current implementation
+2. inspect the relevant tests
+3. identify the current abstraction boundary
+4. explain the problem the change solves
+5. prefer the smallest practical design
+6. add or update tests
+7. update documentation when behavior or architecture changes
 
-This project intentionally avoids adding large frameworks unless they provide a clear practical benefit.
+This project intentionally avoids unnecessary frameworks and abstractions.
 
-For example:
+Current examples:
 
-- no external multi-agent framework is currently required
-- SQLite is planned before introducing a database server
-- repository protocols are defined before concrete SQLite repositories
-- provider-independent interfaces are defined before network implementations
+- no external multi-agent framework is required
+- SQLite is the first normalized persistence backend
+- repository protocols exist before provider-specific persistence dependencies
+- provider-independent interfaces are designed before SEC network implementations
 
 ---
 
@@ -1050,12 +1242,4 @@ A useful contribution should be:
 - covered by pytest
 - passing CI
 
-When uncertain about an implementation detail, prefer inspecting the current code and requirements before introducing a new abstraction.
-
----
-
-## Questions before contributing
-
-If the README, current branch, requirements document, and tests do not clearly answer where a change belongs, discuss the intended boundary before implementing a large solution.
-
-Stock DD MAS is being built incrementally. Small, well-tested changes that preserve clear boundaries are preferred over large changes that try to implement several future roadmap stages at once.
+When uncertain, inspect the current feature branch, requirements, contracts, implementation, and tests before adding a new abstraction.

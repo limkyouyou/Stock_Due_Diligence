@@ -391,12 +391,12 @@ def test_sqlite_company_event_repository_preserves_relationship_order(
 
     event = _make_company_event(
         related_executive_ids=(
-            executive_a,
             executive_b,
+            executive_a,
         ),
         related_role_ids=(
-            role_a,
             role_b,
+            role_a,
         ),
     )
 
@@ -441,11 +441,11 @@ def test_sqlite_company_event_repository_preserves_relationship_order(
         assert loaded is not None
 
         assert loaded.related_executive_ids == (
-            executive_a,
             executive_b,
+            executive_a,
         )
 
         assert loaded.related_role_ids == (
-            role_a,
             role_b,
+            role_a,
         )
