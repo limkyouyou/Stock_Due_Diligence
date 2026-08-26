@@ -8,6 +8,8 @@ from pathlib import Path
 import pytest
 
 from stock_dd.models import (
+    CareerPosition,
+    CareerPositionId,
     CompanyId,
     EvidenceCitation,
     EvidenceSourceId,
@@ -19,10 +21,12 @@ from stock_dd.models import (
     PartialDate,
 )
 from stock_dd.repositories import (
+    CareerPositionRepository,
     ExecutiveRepository,
     ExecutiveRoleRepository,
 )
 from stock_dd.repositories.sqlite import (
+    SQLiteCareerPositionRepository,
     SQLiteExecutiveRepository,
     SQLiteExecutiveRoleRepository,
 )
@@ -164,6 +168,40 @@ def _make_executive_role(
                     "Jane Smith was appointed Chief Executive Officer."
                 ),
                 location="Leadership announcement",
+            ),
+        ),
+    )
+
+
+def _make_career_position(
+    *,
+    position_id: str = "career-jane-smith-example",
+    executive_id: ExecutiveId | None = None,
+    employer_company_id: CompanyId | None = None,
+    citation_source_id: str = "source-career-position",
+) -> CareerPosition:
+    return CareerPosition(
+        position_id=CareerPositionId(position_id),
+        executive_id=ExecutiveId("executive-jane-smith")
+        if executive_id is None
+        else executive_id,
+        employer_name="Previous Corporation",
+        reported_title="Vice President of Finance",
+        employer_company_id=employer_company_id,
+        started_on=PartialDate(
+            year=2018,
+        ),
+        ended_on=PartialDate(
+            year=2022,
+            month=5,
+        ),
+        citations=(
+            EvidenceCitation(
+                source_id=EvidenceSourceId(citation_source_id),
+                supporting_excerpt=(
+                    "Jane Smith previously served as Vice President of Finance."
+                ),
+                location="Executive biography",
             ),
         ),
     )
@@ -596,3 +634,284 @@ def test_sqlite_executive_role_repository_requires_parent_records(
                 repository.save(role)
 
         assert repository.get(role.role_id) is None
+
+
+def test_sqlite_career_position_repository_satisfies_contract(
+    sqlite_database_path: Path,
+) -> None:
+    with open_sqlite_database(sqlite_database_path) as connection:
+        initialize_schema(connection)
+
+        repository = SQLiteCareerPositionRepository(connection)
+
+        assert isinstance(
+            repository,
+            CareerPositionRepository,
+        )
+
+
+def test_sqlite_career_position_repository_round_trips_unresolved_employer(
+    sqlite_database_path: Path,
+) -> None:
+    position = _make_career_position(
+        employer_company_id=None,
+    )
+
+    with open_sqlite_database(sqlite_database_path) as connection:
+        initialize_schema(connection)
+
+        with transaction(connection):
+            _insert_executive(connection)
+            _insert_evidence_source(
+                connection,
+                source_id="source-career-position",
+            )
+
+        repository = SQLiteCareerPositionRepository(connection)
+
+        with transaction(connection):
+            repository.save(position)
+
+        assert repository.get(position.position_id) == position
+
+
+def test_sqlite_career_position_repository_round_trips_resolved_employer(
+    sqlite_database_path: Path,
+) -> None:
+    company_id = CompanyId("company-previous")
+
+    position = _make_career_position(employer_company_id=company_id)
+
+    with open_sqlite_database(sqlite_database_path) as connection:
+        initialize_schema(connection)
+
+        with transaction(connection):
+            _insert_executive(connection)
+            _insert_company(
+                connection,
+                company_id="company-previous",
+                cik="0000000002",
+            )
+            _insert_evidence_source(
+                connection,
+                source_id="source-career-position",
+            )
+
+        repository = SQLiteCareerPositionRepository(connection)
+
+        with transaction(connection):
+            repository.save(position)
+
+        assert repository.get(position.position_id) == position
+
+
+def test_sqlite_career_position_repository_returns_none_for_missing_position(
+    sqlite_database_path: Path,
+) -> None:
+    with open_sqlite_database(sqlite_database_path) as connection:
+        initialize_schema(connection)
+
+        repository = SQLiteCareerPositionRepository(connection)
+
+        assert repository.get(CareerPositionId("career-missing")) is None
+
+
+def test_sqlite_career_position_repository_finds_position_by_executive(
+    sqlite_database_path: Path,
+) -> None:
+    first = _make_career_position(position_id="career-a")
+    second = _make_career_position(position_id="career-b")
+    other = _make_career_position(
+        position_id="career-c",
+        executive_id=ExecutiveId("executive-other"),
+    )
+
+    with open_sqlite_database(sqlite_database_path) as connection:
+        initialize_schema(connection)
+
+        with transaction(connection):
+            _insert_executive(connection)
+            _insert_executive(
+                connection,
+                executive_id="executive-other",
+            )
+            _insert_evidence_source(
+                connection,
+                source_id="source-career-position",
+            )
+
+        repository = SQLiteCareerPositionRepository(connection)
+
+        with transaction(connection):
+            repository.save(first)
+            repository.save(second)
+            repository.save(other)
+
+        assert repository.find_by_executive(ExecutiveId("executive-jane-smith")) == (
+            first,
+            second,
+        )
+
+
+def test_sqlite_career_position_repository_finds_by_employer_company(
+    sqlite_database_path: Path,
+) -> None:
+    company_id = CompanyId("company-previous")
+
+    matched = _make_career_position(
+        position_id="career-a",
+        employer_company_id=company_id,
+    )
+    unresolved = _make_career_position(
+        position_id="career-b",
+        employer_company_id=None,
+    )
+
+    with open_sqlite_database(sqlite_database_path) as connection:
+        initialize_schema(connection)
+
+        with transaction(connection):
+            _insert_executive(connection)
+            _insert_company(
+                connection,
+                company_id="company-previous",
+                cik="0000000002",
+            )
+            _insert_evidence_source(
+                connection,
+                source_id="source-career-position",
+            )
+
+        repository = SQLiteCareerPositionRepository(connection)
+
+        with transaction(connection):
+            repository.save(matched)
+            repository.save(unresolved)
+
+        assert repository.find_by_employer_company(company_id) == (matched,)
+
+
+def test_sqlite_career_position_repository_updates_resolved_employer(
+    sqlite_database_path: Path,
+) -> None:
+    original = _make_career_position()
+
+    updated = replace(
+        original,
+        employer_company_id=CompanyId("company-previous"),
+    )
+
+    with open_sqlite_database(sqlite_database_path) as connection:
+        initialize_schema(connection)
+
+        with transaction(connection):
+            _insert_executive(connection)
+            _insert_company(
+                connection,
+                company_id="company-previous",
+                cik="0000000002",
+            )
+            _insert_evidence_source(
+                connection,
+                source_id="source-career-position",
+            )
+
+        repository = SQLiteCareerPositionRepository(connection)
+
+        with transaction(connection):
+            repository.save(original)
+
+        with transaction(connection):
+            repository.save(updated)
+
+        assert repository.get(original.position_id) == updated
+
+
+def test_sqlite_career_position_repository_replaces_citations(
+    sqlite_database_path: Path,
+) -> None:
+    original = _make_career_position()
+
+    updated = replace(
+        original,
+        citations=(
+            EvidenceCitation(
+                source_id=EvidenceSourceId("source-career-filing"),
+                supporting_excerpt="Jane Smith served as Vice President",
+                location="biography",
+            ),
+        ),
+    )
+
+    with open_sqlite_database(sqlite_database_path) as connection:
+        initialize_schema(connection)
+
+        with transaction(connection):
+            _insert_executive(connection)
+            _insert_evidence_source(
+                connection,
+                source_id="source-career-position",
+            )
+            _insert_evidence_source(
+                connection,
+                source_id="source-career-filing",
+            )
+
+        repository = SQLiteCareerPositionRepository(connection)
+
+        with transaction(connection):
+            repository.save(original)
+
+        with transaction(connection):
+            repository.save(updated)
+
+        assert repository.get(original.position_id) == updated
+
+
+def test_sqlite_career_position_repository_does_not_commit_own_transaction(
+    sqlite_database_path: Path,
+) -> None:
+    position = _make_career_position()
+
+    with open_sqlite_database(sqlite_database_path) as connection:
+        initialize_schema(connection)
+
+        with transaction(connection):
+            _insert_executive(connection)
+            _insert_evidence_source(
+                connection,
+                source_id="source-career-position",
+            )
+
+        repository = SQLiteCareerPositionRepository(connection)
+
+        with pytest.raises(RuntimeError):
+            with transaction(connection):
+                repository.save(position)
+
+                raise RuntimeError("force rollback")
+
+        assert repository.get(position.position_id) is None
+
+
+def test_sqlite_career_position_repository_requries_parent_executive(
+    sqlite_database_path: Path,
+) -> None:
+    position = _make_career_position()
+
+    with open_sqlite_database(sqlite_database_path) as connection:
+        initialize_schema(connection)
+
+        with transaction(connection):
+            _insert_evidence_source(
+                connection,
+                source_id="source-career-position",
+            )
+
+        repository = SQLiteCareerPositionRepository(connection)
+
+        with pytest.raises(sqlite3.IntegrityError):
+            with transaction(connection):
+                repository.save(position)
+
+        assert repository.get(position.position_id) is None

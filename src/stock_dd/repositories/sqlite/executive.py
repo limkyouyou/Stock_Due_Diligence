@@ -5,6 +5,8 @@ from datetime import date
 from typing import cast
 
 from stock_dd.models import (
+    CareerPosition,
+    CareerPositionId,
     CompanyId,
     EvidenceCitation,
     EvidenceSourceId,
@@ -476,4 +478,235 @@ class SQLiteExecutiveRoleRepository:
                 else None
             ),
             is_interim=bool(row["is_interim"]),
+        )
+
+
+class SQLiteCareerPositionRepository:
+    """SQLite persistence for executive career positions."""
+
+    def __init__(self, connection: sqlite3.Connection) -> None:
+        self._connection = connection
+
+    def save(self, position: CareerPosition) -> None:
+        """Insert or update an executive career position."""
+
+        (
+            started_year,
+            started_month,
+            started_day,
+        ) = _partial_date_to_columns(position.started_on)
+
+        (
+            ended_year,
+            ended_month,
+            ended_day,
+        ) = _partial_date_to_columns(position.ended_on)
+
+        self._connection.execute(
+            """
+            INSERT INTO career_positions (
+                position_id,
+                executive_id,
+                employer_name,
+                reported_title,
+                employer_company_id,
+                started_year,
+                started_month,
+                started_day,
+                ended_year,
+                ended_month,
+                ended_day                
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(position_id) DO UPDATE SET
+                executive_id = excluded.executive_id,
+                employer_name = excluded.employer_name,
+                reported_title = excluded.reported_title,
+                employer_company_id = excluded.employer_company_id,
+                started_year = excluded.started_year,
+                started_month = excluded.started_month,
+                started_day = excluded.started_day,
+                ended_year = excluded.ended_year,
+                ended_month = excluded.ended_month,
+                ended_day = excluded.ended_day                
+            """,
+            (
+                position.position_id,
+                position.executive_id,
+                position.employer_name,
+                position.reported_title,
+                position.employer_company_id,
+                started_year,
+                started_month,
+                started_day,
+                ended_year,
+                ended_month,
+                ended_day,
+            ),
+        )
+
+        self._connection.execute(
+            """
+            DELETE FROM career_position_citations
+            WHERE position_id = ?
+            """,
+            (position.position_id,),
+        )
+
+        self._connection.executemany(
+            """
+            INSERT INTO career_position_citations (
+                position_id,
+                citation_order,
+                source_id,
+                supporting_excerpt,
+                location
+            )
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                (
+                    position.position_id,
+                    citation_order,
+                    citation.source_id,
+                    citation.supporting_excerpt,
+                    citation.location,
+                )
+                for citation_order, citation in enumerate(position.citations)
+            ),
+        )
+
+    def get(self, position_id: CareerPositionId) -> CareerPosition | None:
+        """Return a career position by its internal identifier."""
+
+        row = self._connection.execute(
+            """
+            SELECT
+                position_id,
+                executive_id,
+                employer_name,
+                reported_title,
+                employer_company_id,
+                started_year,
+                started_month,
+                started_day,
+                ended_year,
+                ended_month,
+                ended_day
+            FROM career_positions
+            WHERE position_id = ?                
+            """,
+            (position_id,),
+        ).fetchone()
+
+        if row is None:
+            return None
+
+        return self._position_from_row(row)
+
+    def find_by_executive(
+        self,
+        executive_id: ExecutiveId,
+    ) -> tuple[CareerPosition, ...]:
+        """Return all known career positions for an executive."""
+
+        rows = self._connection.execute(
+            """
+            SELECT
+                position_id,
+                executive_id,
+                employer_name,
+                reported_title,
+                employer_company_id,
+                started_year,
+                started_month,
+                started_day,
+                ended_year,
+                ended_month,
+                ended_day
+            FROM career_positions
+            WHERE executive_id = ?
+            ORDER BY position_id
+            """,
+            (executive_id,),
+        ).fetchall()
+
+        return tuple(self._position_from_row(row) for row in rows)
+
+    def find_by_employer_company(
+        self,
+        company_id: CompanyId,
+    ) -> tuple[CareerPosition, ...]:
+        """Reutrn positions linked to a known employer company."""
+
+        rows = self._connection.execute(
+            """
+            SELECT
+                position_id,
+                executive_id,
+                employer_name,
+                reported_title,
+                employer_company_id,
+                started_year,
+                started_month,
+                started_day,
+                ended_year,
+                ended_month,
+                ended_day
+            FROM career_positions
+            WHERE employer_company_id = ?
+            ORDER by position_id
+            """,
+            (company_id,),
+        ).fetchall()
+
+        return tuple(self._position_from_row(row) for row in rows)
+
+    def _position_from_row(
+        self,
+        row: sqlite3.Row,
+    ) -> CareerPosition:
+        """Convert a career-position row into a domain object."""
+
+        position_id = CareerPositionId(row["position_id"])
+
+        citations_rows = self._connection.execute(
+            """
+            SELECT
+                source_id,
+                supporting_excerpt,
+                location
+            FROM career_position_citations
+            WHERE position_id = ?
+            ORDER BY citation_order
+            """,
+            (position_id,),
+        ).fetchall()
+
+        return CareerPosition(
+            position_id=position_id,
+            executive_id=ExecutiveId(row["executive_id"]),
+            employer_name=row["employer_name"],
+            reported_title=row["reported_title"],
+            employer_company_id=(
+                CompanyId(row["employer_company_id"])
+                if row["employer_company_id"] is not None
+                else None
+            ),
+            started_on=_partial_date_from_row(
+                row,
+                "started",
+            ),
+            ended_on=_partial_date_from_row(
+                row,
+                "ended",
+            ),
+            citations=tuple(
+                EvidenceCitation(
+                    source_id=EvidenceSourceId(citation_row["source_id"]),
+                    supporting_excerpt=citation_row["supporting_excerpt"],
+                    location=citation_row["location"],
+                )
+                for citation_row in citations_rows
+            ),
         )
