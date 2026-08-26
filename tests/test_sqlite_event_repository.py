@@ -53,6 +53,7 @@ def _insert_executive(
     connection: sqlite3.Connection,
     *,
     executive_id: str = "executive-jane-smith",
+    full_name: str = "Jane Smith",
 ) -> None:
     connection.execute(
         """
@@ -64,7 +65,7 @@ def _insert_executive(
         """,
         (
             executive_id,
-            "Jane Smith",
+            full_name,
         ),
     )
 
@@ -99,6 +100,9 @@ def _insert_role(
     connection: sqlite3.Connection,
     *,
     role_id: str = "role-example-ceo",
+    executive_id: str = "executive-jane-smith",
+    role_type: str = "chief_executive_officer",
+    reported_title: str = "Chief Executive Officer",
 ) -> None:
     connection.execute(
         """
@@ -114,9 +118,9 @@ def _insert_role(
         (
             role_id,
             "company-example",
-            "executive-jane-smith",
-            "chief_executive_officer",
-            "Chief Executive Officer",
+            executive_id,
+            role_type,
+            reported_title,
         ),
     )
 
@@ -340,3 +344,108 @@ def test_sqlite_company_event_repository_finds_events_by_role(
             repository.save(event)
 
         assert repository.find_by_role(role_id) == (event,)
+
+
+def test_sqlite_company_event_repository_filters_executive_by_event_type(
+    sqlite_database_path: Path,
+) -> None:
+    executive_id = ExecutiveId("executive-jane-smith")
+
+    appointment = _make_company_event(
+        event_id="event-a-appointment",
+        event_type=CompanyEventType.EXECUTIVE_APPOINTMENT,
+    )
+
+    departure = _make_company_event(
+        event_id="event-b-departure",
+        event_type=CompanyEventType.EXECUTIVE_DEPARTURE,
+    )
+
+    with open_sqlite_database(sqlite_database_path) as connection:
+        initialize_schema(connection)
+
+        with transaction(connection):
+            _insert_company(connection)
+            _insert_executive(connection)
+            _insert_evidence_source(connection)
+
+        repository = SQLiteCompanyEventRepository(connection)
+
+        with transaction(connection):
+            repository.save(appointment)
+            repository.save(departure)
+
+        assert repository.find_by_executive(
+            executive_id, event_type=CompanyEventType.EXECUTIVE_DEPARTURE
+        ) == (departure,)
+
+
+def test_sqlite_company_event_repository_preserves_relationship_order(
+    sqlite_database_path: Path,
+) -> None:
+    executive_a = ExecutiveId("executive-a")
+    executive_b = ExecutiveId("executive-b")
+
+    role_a = ExecutiveRoleId("role-a")
+    role_b = ExecutiveRoleId("role-b")
+
+    event = _make_company_event(
+        related_executive_ids=(
+            executive_a,
+            executive_b,
+        ),
+        related_role_ids=(
+            role_a,
+            role_b,
+        ),
+    )
+
+    with open_sqlite_database(sqlite_database_path) as connection:
+        initialize_schema(connection)
+
+        with transaction(connection):
+            _insert_company(connection)
+            _insert_executive(
+                connection,
+                executive_id="executive-a",
+                full_name="Alice Example",
+            )
+            _insert_executive(
+                connection,
+                executive_id="executive-b",
+                full_name="Bob Example",
+            )
+            _insert_evidence_source(connection)
+            _insert_role(
+                connection,
+                role_id="role-a",
+                executive_id="executive-a",
+                role_type="chief_executive_officer",
+                reported_title="Chief Executive Officer",
+            )
+            _insert_role(
+                connection,
+                role_id="role-b",
+                executive_id="executive-b",
+                role_type="chief_financial_officer",
+                reported_title="Chief Financial Officer",
+            )
+
+        repository = SQLiteCompanyEventRepository(connection)
+
+        with transaction(connection):
+            repository.save(event)
+
+        loaded = repository.get(event.event_id)
+
+        assert loaded is not None
+
+        assert loaded.related_executive_ids == (
+            executive_a,
+            executive_b,
+        )
+
+        assert loaded.related_role_ids == (
+            role_a,
+            role_b,
+        )
