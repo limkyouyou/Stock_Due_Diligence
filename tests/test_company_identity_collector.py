@@ -53,7 +53,7 @@ class StubCompanyIdentityCollector:
         )
 
 
-def test_company_identity_collector_accepts_compativle_implementation() -> None:
+def test_company_identity_collector_accepts_compatible_implementation() -> None:
     collector = StubCompanyIdentityCollector()
 
     assert isinstance(collector, CompanyIdentityCollector)

@@ -10,6 +10,7 @@ from stock_dd.exceptions import ConfigurationError
 API_KEY_VARIABLE = "STOCK_DD_FINANCIAL_API_KEY"
 RAW_DIRECTORY_VARIABLE = "STOCK_DD_RAW_DATA_DIR"
 DATABASE_PATH_VARIABLE = "STOCK_DD_DATABASE_PATH"
+SEC_USER_AGENT_VARIRABLE = "STOCK_DD_SEC_USER_AGENT"
 
 
 def test_load_settings_reads_dotenv_file(
@@ -61,12 +62,14 @@ def test_load_settings_uses_default_storage_paths(
     monkeypatch.delenv(API_KEY_VARIABLE, raising=False)
     monkeypatch.delenv(RAW_DIRECTORY_VARIABLE, raising=False)
     monkeypatch.delenv(DATABASE_PATH_VARIABLE, raising=False)
+    monkeypatch.delenv(SEC_USER_AGENT_VARIRABLE, raising=False)
 
     settings = load_settings(env_file=None)
 
     assert settings.financial_api_key is None
     assert settings.raw_data_directory == Path("data/raw")
     assert settings.database_path == Path("data/stock_dd.sqlite3")
+    assert settings.sec_user_agent is None
 
 
 def test_blank_api_key_is_treated_as_missing(
@@ -124,3 +127,41 @@ def test_blank_database_path_uses_default(
     settings = load_settings(env_file=None)
 
     assert settings.database_path == Path("data/stock_dd.sqlite3")
+
+
+def test_blank_sec_user_agent_is_treated_as_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        SEC_USER_AGENT_VARIRABLE,
+        "   ",
+    )
+
+    settings = load_settings(env_file=None)
+
+    assert settings.sec_user_agent is None
+
+
+def test_require_sec_user_agent_returns_value() -> None:
+    settings = Settings(
+        financial_api_key=None,
+        raw_data_directory=Path("data/raw"),
+        database_path=Path("data/stock_dd.sqlite3"),
+        sec_user_agent="Stock DD MAS test@example.com",
+    )
+
+    assert settings.require_sec_user_agent() == "Stock DD MAS test@example.com"
+
+
+def test_require_sec_user_agent_raises_when_missing() -> None:
+    settings = Settings(
+        financial_api_key=None,
+        raw_data_directory=Path("data/raw"),
+        database_path=Path("data/stock_dd.sqlite3"),
+    )
+
+    with pytest.raises(
+        ConfigurationError,
+        match="STOCK_DD_SEC_USER_AGENT",
+    ):
+        settings.require_sec_user_agent()

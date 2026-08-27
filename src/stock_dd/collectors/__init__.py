@@ -15,3 +15,6 @@ from stock_dd.collectors.company_identity import (
 from stock_dd.collectors.company_identity import (
     CompanyIdentityDataset as CompanyIdentityDataset,
 )
+from stock_dd.collectors.sec import (
+    SECCompanyIdentityCollector as SECCompanyIdentityCollector,
+)

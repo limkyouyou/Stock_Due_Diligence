@@ -12,12 +12,12 @@ class CollectedCompanyIdentity:
     legal_name: str
     cik: str
     ticker: str
-    exchange: str
+    exchange: str | None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class CompanyIdentityDataset:
-    """Company-identity data collected for one reuested ticker."""
+    """Company-identity data collected for one requested ticker."""
 
     provider: str
     requested_ticker: str

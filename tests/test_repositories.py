@@ -314,7 +314,7 @@ def test_company_repository_protocol_accepts_compatble_implementation() -> None:
     assert isinstance(respository, CompanyRepository)
 
 
-def test_company_repository_supports_idenity_lookup() -> None:
+def test_company_repository_supports_identity_lookup() -> None:
     respository: CompanyRepository = InMemoryCompanyRepository()
     company = CompanyIdentity(
         company_id=CompanyId("company-apple"),

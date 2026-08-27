@@ -13,6 +13,7 @@ from stock_dd.exceptions import ConfigurationError
 _FINANCIAL_API_KEY = "STOCK_DD_FINANCIAL_API_KEY"
 _RAW_DATA_DIRECTORY = "STOCK_DD_RAW_DATA_DIR"
 _DATABASE_PATH = "STOCK_DD_DATABASE_PATH"
+_SEC_USER_AGENT = "STOCK_DD_SEC_USER_AGENT"
 
 
 @dataclass(frozen=True, slots=True)
@@ -22,6 +23,7 @@ class Settings:
     financial_api_key: str | None = field(repr=False)
     raw_data_directory: Path
     database_path: Path
+    sec_user_agent: str | None = field(default=None, repr=False)
 
     def require_financial_api_key(self) -> str:
         """Return the financial API key or raise a configuration error."""
@@ -33,6 +35,16 @@ class Settings:
             )
 
         return self.financial_api_key
+
+    def require_sec_user_agent(self) -> str:
+        """Return the SEC User-Agent or raise a configuration error."""
+
+        if self.sec_user_agent is None:
+            raise ConfigurationError(
+                f"Required environment variable '{_SEC_USER_AGENT}' is missing or empty"
+            )
+
+        return self.sec_user_agent
 
 
 def load_settings(
@@ -65,6 +77,7 @@ def load_settings(
         financial_api_key=_clean_optional(values.get(_FINANCIAL_API_KEY)),
         raw_data_directory=Path(raw_data_directory),
         database_path=Path(database_path),
+        sec_user_agent=_clean_optional(values.get(_SEC_USER_AGENT)),
     )
 
 
