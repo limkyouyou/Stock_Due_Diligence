@@ -202,7 +202,7 @@ class SECCompanyIdentityCollector:
             or raw_cik > 9_999_999_999
         ):
             raise CollectorError(
-                "SEC comapny-identity payload contains an invalid CIK."
+                "SEC company-identity payload contains an invalid CIK."
             )
 
         if not isinstance(raw_name, str) or not raw_name.strip():
@@ -239,7 +239,7 @@ class SECCompanyIdentityCollector:
         """Create a safe message for an unsuccessful SEC response."""
 
         if status_code == 429:
-            return "SEC rate limite was reached during company-identity collection."
+            return "SEC rate limit was reached during company-identity collection."
 
         if status_code == 403:
             return "SEC access was denied during company-identity collection. Check the configured User-Agent."
