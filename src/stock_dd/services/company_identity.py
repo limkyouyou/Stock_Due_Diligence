@@ -1,4 +1,4 @@
-"""Application service for truested company-identity ingestion."""
+"""Application service for trusted company-identity ingestion."""
 
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -35,7 +35,7 @@ def _new_listing_id() -> CompanyListingId:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class CompanyIdentityIngestionResult:
-    """Trusted records produced by company-identity ingestions."""
+    """Trusted records produced by company-identity ingestion."""
 
     company: CompanyIdentity
     listing: CompanyListing | None

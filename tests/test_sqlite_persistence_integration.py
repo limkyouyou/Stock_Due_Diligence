@@ -127,7 +127,7 @@ def test_sqlite_research_graph_survives_transaction_and_reopen(
         position_id=position_id,
         executive_id=executive_id,
         employer_name="Example Corporation",
-        reported_title="Vice President of Finace",
+        reported_title="Vice President of Finance",
         citations=(citation,),
         employer_company_id=company_id,
         started_on=PartialDate(
