@@ -1,4 +1,4 @@
-"""Appication-specific exceptions for Stock DD MAS."""
+"""Application-specific exceptions for Stock DD MAS."""
 
 
 class StockDDError(Exception):

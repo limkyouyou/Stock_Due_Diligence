@@ -15,6 +15,18 @@ from stock_dd.collectors.company_identity import (
 from stock_dd.collectors.company_identity import (
     CompanyIdentityDataset as CompanyIdentityDataset,
 )
+from stock_dd.collectors.filings import (
+    DiscoveredFiling as DiscoveredFiling,
+)
+from stock_dd.collectors.filings import (
+    FilingDiscoveryCollector as FilingDiscoveryCollector,
+)
+from stock_dd.collectors.filings import (
+    FilingDiscoveryDataset as FilingDiscoveryDataset,
+)
+from stock_dd.collectors.filings import (
+    FilingDiscoveryRequest as FilingDiscoveryRequest,
+)
 from stock_dd.collectors.sec import (
     SECCompanyIdentityCollector as SECCompanyIdentityCollector,
 )
