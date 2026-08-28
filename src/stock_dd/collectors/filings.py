@@ -49,14 +49,14 @@ class FilingDiscoveryRequest:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class DiscoveredFiling:
-    """Normalize metadata for one discovered filing."""
+    """Normalized metadata for one discovered filing."""
 
     accession_number: str
     form: str
     filed_on: date
     filing_index_url: str
     reported_date: date | None = None
-    accepted_on: date | None = None
+    accepted_at: datetime | None = None
     primary_document: str | None = None
     primary_document_url: str | None = None
     items: tuple[str, ...] = ()

@@ -145,7 +145,7 @@ def test_constructor_rejects_empty_api_key() -> None:
         FMPFinancialDataCollector("   ")
 
 
-def test_constructor_rejects_non_positive_timeour() -> None:
+def test_constructor_rejects_non_positive_timeout() -> None:
     with pytest.raises(
         ValueError,
         match="timeout_seconds must be greater than zero",

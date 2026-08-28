@@ -30,3 +30,6 @@ from stock_dd.collectors.filings import (
 from stock_dd.collectors.sec import (
     SECCompanyIdentityCollector as SECCompanyIdentityCollector,
 )
+from stock_dd.collectors.sec_filings import (
+    SECFilingDiscoveryCollector as SECFilingDiscoveryCollector,
+)
