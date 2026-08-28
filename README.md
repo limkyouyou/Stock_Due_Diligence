@@ -48,7 +48,13 @@ GitHub Actions runs automated quality checks on Ubuntu. This provides an additio
 
 ## Current project status
 
-The original financial-data foundation is working, and the first management-research persistence foundation is now implemented.
+The original financial-data foundation is working.
+
+The management-research domain and SQLite persistence foundation are implemented and integration-tested.
+
+The first SEC company-identity collection and ingestion vertical is also implemented and tested end to end.
+
+The project is now ready to begin **SEC filing discovery**.
 
 ### Completed financial foundation
 
@@ -106,8 +112,37 @@ The original financial-data foundation is working, and the first management-rese
   - `SQLiteExecutiveRoleRepository`
   - `SQLiteCareerPositionRepository`
   - `SQLiteCompanyEventRepository`
+- repository-level persistence tests
+- full SQLite persistence integration test
+- transaction/reopen verification
+- relationship-order preservation tests
 
 The persistence layer preserves evidence citations, historical listing validity, partial-date precision, executive/event relationships, and ordered child collections where order is part of the domain representation.
+
+### Completed SEC company-identity foundation
+
+- provider-independent `CompanyIdentityCollector` contract
+- typed `CompanyIdentityDataset`
+- typed `CollectedCompanyIdentity`
+- `SECCompanyIdentityCollector`
+- SEC ticker/company/exchange collection
+- configurable SEC `User-Agent`
+- SEC HTTP error handling
+- mocked HTTP tests
+- SEC payload/schema validation
+- ticker normalization
+- zero-padded SEC CIK normalization
+- support for missing SEC exchange values
+- `CompanyIdentityIngestionService`
+- application-owned `CompanyId` and `CompanyListingId` generation
+- company resolution by CIK
+- listing resolution by company/ticker/exchange
+- preservation of existing internal IDs
+- duplicate-prevention behavior
+- SQLite-backed company-identity ingestion integration test
+- database-close/reopen verification
+
+The SEC provider adapter does **not** create trusted application IDs. Internal identity creation and persistence remain application/service responsibilities.
 
 ---
 
@@ -125,18 +160,19 @@ Before beginning work, confirm that this is still the active branch and inspect 
 
 ## Immediate development sequence
 
-The repository contracts and first SQLite implementations are complete.
+The financial foundation, management domain, SQLite persistence foundation, and SEC company-identity vertical are complete.
 
 The immediate sequence is now:
 
 ```text
-SQLite persistence integration test
+Provider-independent SEC filing discovery contract
     ↓
-Provider-independent SEC/company collection interfaces
+SEC filing discovery implementation
     ↓
-SEC company identity resolution
-    ↓
-SEC filing discovery
+Initial filing types:
+    DEF 14A
+    10-K
+    8-K
     ↓
 Raw SEC filing storage
     ↓
@@ -216,6 +252,44 @@ Markdown report
 ```
 
 Provider-specific response structures are intentionally isolated from normalized application models.
+
+---
+
+## Current SEC company-identity pipeline
+
+```text
+Ticker
+    ↓
+SECCompanyIdentityCollector
+    ↓
+SEC company/ticker/exchange data
+    ↓
+CompanyIdentityDataset
+    ↓
+CollectedCompanyIdentity
+    ↓
+CompanyIdentityIngestionService
+    ↓
+CompanyIdentity + CompanyListing
+    ↓
+Repository contracts
+    ↓
+SQLite
+```
+
+Important identity rules:
+
+- SEC-specific collection remains behind a provider-independent collector contract.
+- SEC CIK values are normalized to 10-digit zero-padded strings.
+- `CompanyId` and `CompanyListingId` are internal Stock DD MAS identifiers.
+- Provider adapters do not generate application IDs.
+- Existing companies are resolved by CIK.
+- Existing listings are resolved within the trusted company by ticker and exchange.
+- Repeated ingestion should reuse trusted records rather than create duplicates.
+- A missing SEC exchange does not cause the application to invent an exchange.
+- If the exchange is missing, the company can be stored without creating a trusted listing.
+- The SEC collection timestamp is not treated as the listing's historical start date.
+- Conflicting trusted identity information must not be silently overwritten.
 
 ---
 
@@ -447,6 +521,83 @@ Dates:
 
 ---
 
+## Collector boundaries
+
+Provider-independent collection contracts live under:
+
+```text
+src/stock_dd/collectors/
+```
+
+The current collector architecture includes financial collection and company-identity collection.
+
+Examples:
+
+```text
+FinancialDataCollector
+    ↓
+FMPFinancialDataCollector
+```
+
+and:
+
+```text
+CompanyIdentityCollector
+    ↓
+SECCompanyIdentityCollector
+```
+
+Application code should depend on provider-independent contracts where practical.
+
+Provider-specific adapters are responsible for:
+
+- network communication
+- provider-specific request requirements
+- provider response validation
+- provider response normalization into collector-level types
+- translating network/provider failures into application exceptions
+
+Provider-specific collectors should not:
+
+- create internal database identities
+- persist trusted records directly
+- assign management scores
+- silently resolve conflicting trusted evidence
+
+---
+
+## Service boundary
+
+Application services live under:
+
+```text
+src/stock_dd/services/
+```
+
+Services handle application-level workflows that should not belong to provider adapters or generic repositories.
+
+The first implemented service is:
+
+```text
+CompanyIdentityIngestionService
+```
+
+Its responsibilities include:
+
+- accepting typed collected identity data
+- requiring an unambiguous collected match
+- resolving an existing company by CIK
+- creating a company when no trusted company exists
+- preserving an existing internal company ID
+- resolving an existing listing
+- creating a listing when enough trusted information exists
+- preserving existing listing IDs
+- refusing to silently overwrite conflicting legal-company identity data
+
+This layer is also responsible for internal ID creation rather than allowing external providers to invent application identities.
+
+---
+
 ## Repository boundary
 
 Provider-independent repository contracts live under:
@@ -480,7 +631,7 @@ src/stock_dd/repositories/sqlite/
 
 ## SQLite persistence
 
-SQLite is now the first implemented normalized persistence backend.
+SQLite is the first implemented normalized persistence backend.
 
 ### Database path
 
@@ -585,7 +736,20 @@ the saved tuple is treated as the complete current representation, not as a part
 
 For example, to add an executive while preserving existing executives, higher-level logic should first load the existing event and construct the complete updated tuple.
 
-Merge/add/remove semantics belong in a future application/service layer rather than being guessed by generic repositories.
+Merge/add/remove semantics belong in application/service logic rather than being guessed by generic repositories.
+
+### Persistence integration
+
+The SQLite persistence integration test verifies that a connected management-research graph can:
+
+1. be written using the real repository implementations
+2. participate in one caller-owned transaction
+3. survive database closure
+4. survive database reopening
+5. retain important cross-record relationships
+6. retain partial-date precision
+
+A separate identity-ingestion integration test verifies the flow from SEC collector output through `CompanyIdentityIngestionService` into real SQLite repositories.
 
 ---
 
@@ -598,13 +762,14 @@ Use three conceptual layers.
 Examples:
 
 - FMP JSON
-- future SEC JSON
+- SEC company/ticker data
+- future SEC filing JSON/metadata
 - future SEC filing HTML
 - downloaded reports
 - extracted webpage text
 - future raw research-agent output
 
-Raw data should be preserved so normalization can be rerun without recollecting the source.
+Raw data should be preserved where appropriate so parsing and normalization can be rerun without recollecting the source.
 
 Default raw-data directory:
 
@@ -614,11 +779,25 @@ data/raw/
 
 It is ignored by Git.
 
+FMP raw-response storage is already implemented.
+
+SEC filing raw-source storage is a planned upcoming milestone.
+
 ### 2. Candidate evidence
 
 Information extracted by a parser or research agent but not yet accepted as trusted fact.
 
-`CandidateEvidence` preserves the extracted value, citation, extraction method, verification status, optional confidence, and optional links to known company/executive identities.
+`CandidateEvidence` preserves:
+
+- extracted value
+- citation
+- extraction method
+- verification status
+- optional confidence
+- optional company identity
+- optional executive identity
+
+Candidate evidence is not automatically trusted.
 
 ### 3. Normalized trusted data
 
@@ -632,7 +811,7 @@ Examples:
 - `CompanyEvent`
 - `EvidenceSource`
 
-These records are now persistable in SQLite through repository interfaces.
+These records are persistable in SQLite through repository interfaces.
 
 Application logic should operate on typed domain objects rather than raw SQL rows.
 
@@ -668,6 +847,7 @@ src/stock_dd/
 ├── normalizers/
 ├── repositories/
 │   └── sqlite/
+├── services/
 ├── storage/
 ├── __init__.py
 ├── __main__.py
@@ -763,6 +943,7 @@ Current environment variables:
 STOCK_DD_FINANCIAL_API_KEY=
 STOCK_DD_RAW_DATA_DIR=data/raw
 STOCK_DD_DATABASE_PATH=data/stock_dd.sqlite3
+STOCK_DD_SEC_USER_AGENT=
 ```
 
 ### `STOCK_DD_FINANCIAL_API_KEY`
@@ -790,6 +971,22 @@ Default:
 ```text
 data/stock_dd.sqlite3
 ```
+
+### `STOCK_DD_SEC_USER_AGENT`
+
+Identifying `User-Agent` used for automated SEC requests.
+
+Example:
+
+```text
+Stock DD MAS contact@example.com
+```
+
+Use a contact address appropriate for automated SEC access.
+
+Do not commit a personal contact address that you do not want published.
+
+The real value belongs in the local `.env` file.
 
 ---
 
@@ -839,6 +1036,14 @@ or:
 python -m stock_dd -v offline --input data/samples/northstar_robotics.json
 ```
 
+### SEC management-research status
+
+SEC company-identity collection currently exists as an internal collector/service capability.
+
+It has not yet been exposed as a complete management-research CLI workflow.
+
+Do not assume that a dedicated SEC management CLI command exists until one is explicitly implemented and documented.
+
 ---
 
 ## Current FMP behavior
@@ -864,6 +1069,43 @@ The annual financial-statement date is used as the financial report's `as_of_dat
 The raw collection timestamp is stored separately from the statement reporting date.
 
 FMP news is not currently part of the project. Do not assume access to paid FMP news endpoints.
+
+---
+
+## Current SEC behavior
+
+The current SEC implementation provides company-identity collection using SEC company/ticker/exchange information.
+
+Current responsibilities include:
+
+- request identification through the configured SEC `User-Agent`
+- ticker normalization
+- HTTP error translation
+- JSON/schema validation
+- company-name extraction
+- ticker extraction
+- exchange extraction
+- CIK normalization
+- support for missing exchange values
+
+The SEC collector returns provider-independent typed data rather than trusted SQLite records.
+
+Trusted identity persistence is handled separately by:
+
+```text
+CompanyIdentityIngestionService
+```
+
+Current SEC functionality does **not yet** include:
+
+- filing discovery
+- raw filing download/storage
+- filing-document parsing
+- executive extraction
+- management-event extraction
+- candidate-evidence generation from filings
+
+Those belong to upcoming milestones.
 
 ---
 
@@ -914,7 +1156,7 @@ A contribution should not be considered ready to merge while CI is failing.
 
 ### Keep provider-specific code behind interfaces
 
-Example:
+Financial example:
 
 ```text
 FinancialDataCollector
@@ -922,17 +1164,70 @@ FinancialDataCollector
 FMPFinancialDataCollector
 ```
 
-Use the same design principle for SEC collection, research agents, and persistence.
+SEC identity example:
+
+```text
+CompanyIdentityCollector
+    ↓
+SECCompanyIdentityCollector
+```
+
+Use the same principle for filing discovery, research agents, and future providers.
 
 ### Define interfaces before provider/network implementations
 
 Do not begin a provider-specific network implementation until the application-facing contract is clear and tested.
 
+The intended pattern is:
+
+```text
+Application-facing contract
+    ↓
+Provider implementation
+    ↓
+Provider tests
+    ↓
+Application/service integration
+```
+
+### Separate collection from trusted persistence
+
+External collectors should not directly decide what becomes trusted application state.
+
+Example:
+
+```text
+SECCompanyIdentityCollector
+    ↓
+CompanyIdentityDataset
+    ↓
+CompanyIdentityIngestionService
+    ↓
+Trusted CompanyIdentity / CompanyListing
+```
+
+### Keep external IDs separate from internal IDs
+
+External identifiers such as SEC CIK belong to the source/provider domain.
+
+Internal identifiers such as:
+
+```text
+CompanyId
+CompanyListingId
+ExecutiveId
+ExecutiveRoleId
+```
+
+belong to Stock DD MAS.
+
+Provider adapters should not invent internal application IDs.
+
 ### Keep raw data separate from normalized data
 
-Raw external responses should be preserved.
+Raw external responses should be preserved where appropriate.
 
-Normalization converts provider-specific content into application-domain data.
+Normalization converts provider-specific content into application-level data.
 
 ### Do not let agents become the source of truth
 
@@ -962,6 +1257,12 @@ The CEO caused the operating-margin increase.
 
 Do not invent values to fill gaps.
 
+Examples:
+
+- do not invent January 1 for a year-only date
+- do not invent an exchange when SEC provides none
+- do not treat collection time as listing start time
+
 Missing and conflicting information should remain visible.
 
 ### Keep scoring out of collection
@@ -986,9 +1287,101 @@ Do not assume two people are the same because their names match.
 
 Do not treat a free-text employer name as a resolved `CompanyIdentity`.
 
+Do not assume the provider's idea of identity is the same as the application's internal identity.
+
 ### Preserve temporal precision
 
 Do not convert uncertain dates into fake exact dates.
+
+### Do not silently overwrite conflicts
+
+If newly collected information conflicts with trusted data, surface the conflict rather than automatically replacing the trusted value.
+
+Future promotion/conflict-handling logic should make those decisions explicitly.
+
+---
+
+## Testing strategy
+
+The project uses several layers of tests.
+
+### Unit tests
+
+Used for:
+
+- validation logic
+- calculations
+- parsers
+- normalizers
+- service behavior
+
+### Contract tests
+
+Used to confirm structural compatibility with provider-independent protocols.
+
+Examples include:
+
+- collector protocols
+- repository protocols
+
+### Repository tests
+
+Used to verify:
+
+- round trips
+- query behavior
+- stable-ID upserts
+- replacement semantics
+- foreign keys
+- partial dates
+- relationship ordering
+
+### HTTP adapter tests
+
+Provider HTTP behavior is tested with mocked transports rather than depending on live services during normal CI.
+
+This provides deterministic tests for:
+
+- successful responses
+- HTTP failures
+- network failures
+- malformed JSON
+- malformed provider records
+- unexpected provider schema
+
+### Integration tests
+
+Integration tests verify that separately tested components work together.
+
+Current examples include:
+
+```text
+Management domain graph
+    ↓
+All SQLite repositories
+    ↓
+One transaction
+    ↓
+Database reopen
+```
+
+and:
+
+```text
+SEC collector output
+    ↓
+CompanyIdentityIngestionService
+    ↓
+Real SQLite repositories
+    ↓
+Database reopen
+    ↓
+Repeated ingestion
+    ↓
+Same internal IDs
+```
+
+Integration tests should not duplicate every unit test. They should prove important boundaries work together.
 
 ---
 
@@ -1002,6 +1395,8 @@ Before starting a contribution:
 4. Inspect the current implementation and tests.
 5. Confirm the next roadmap item.
 6. Make a focused change.
+7. Run local quality checks.
+8. Review the diff before committing.
 
 Branch naming examples:
 
@@ -1017,13 +1412,14 @@ Commit examples:
 
 ```text
 feat: add SEC company collector contract
+feat: add company identity ingestion service
 fix: preserve company event relationship order
 refactor: extract SQLite date helpers
-test: cover historical ticker lookup
+test: add company identity ingestion integration coverage
 docs: update collaborator setup
 ```
 
-Before pushing:
+Before pushing code:
 
 ```powershell
 python -m ruff format .
@@ -1032,11 +1428,28 @@ python -m mypy
 python -m pytest --cov=stock_dd --cov-branch --cov-report=term-missing
 ```
 
-Then:
+Then review:
 
 ```powershell
 git status
-git add .
+git diff
+```
+
+Stage the intended files:
+
+```powershell
+git add <files>
+```
+
+Review staged changes:
+
+```powershell
+git diff --staged
+```
+
+Commit and push:
+
+```powershell
 git commit -m "..."
 git push
 ```
@@ -1047,19 +1460,37 @@ Do not commit directly to `main` for normal collaborative feature work unless th
 
 ## Where a new collaborator should start
 
-### Step 1: Run the existing application
+### Step 1: Pull the current branch
+
+At the time of writing:
+
+```powershell
+git switch feature/management-research-foundation
+git pull
+```
+
+### Step 2: Run the existing application
 
 ```powershell
 python -m stock_dd offline --input data/samples/northstar_robotics.json
 ```
 
-### Step 2: Read the management requirements
+### Step 3: Run the quality checks
+
+```powershell
+python -m ruff format .
+python -m ruff check .
+python -m mypy
+python -m pytest --cov=stock_dd --cov-branch --cov-report=term-missing
+```
+
+### Step 4: Read the management requirements
 
 ```text
 docs/management-research-requirements.md
 ```
 
-### Step 3: Inspect the management domain and repositories
+### Step 5: Inspect the management domain and persistence layer
 
 ```text
 src/stock_dd/models/
@@ -1069,15 +1500,44 @@ src/stock_dd/storage/sqlite_schema.py
 src/stock_dd/storage/sqlite_connection.py
 ```
 
-### Step 4: Check the current roadmap item
+### Step 6: Inspect the SEC identity flow
 
-At the time of writing, repository contracts and the first SQLite repository implementations are complete.
+```text
+src/stock_dd/collectors/company_identity.py
+src/stock_dd/collectors/sec.py
+src/stock_dd/services/company_identity.py
+```
 
-The next planned engineering step is a persistence integration test before beginning SEC collection interfaces.
+Then review their tests under:
 
-### Step 5: Make a small, tested contribution
+```text
+tests/
+```
+
+### Step 7: Check the current roadmap item
+
+At the time of writing:
+
+- SQLite persistence is complete and integration-tested.
+- The SEC company-identity collector is complete.
+- Company-identity ingestion into SQLite is complete and integration-tested.
+- The next engineering milestone is **SEC filing discovery**.
+
+Initial target forms:
+
+```text
+DEF 14A
+10-K
+8-K
+```
+
+The first implementation step should define the provider-independent filing-discovery contract before adding SEC-specific network behavior.
+
+### Step 8: Make a small, tested contribution
 
 Avoid large cross-cutting architecture changes as a first contribution.
+
+Prefer one contract, implementation, or test milestone at a time.
 
 ---
 
@@ -1093,15 +1553,31 @@ Avoid large cross-cutting architecture changes as a first contribution.
 - [x] Repository contracts
 - [x] SQLite schema and transaction infrastructure
 - [x] SQLite repository implementations
-- [ ] Persistence integration test
+- [x] Persistence integration test
 
 ### Structured management research
 
-- [ ] Provider-independent company/SEC collection interfaces
-- [ ] SEC company identity resolution
+- [x] Provider-independent company/SEC identity collection interface
+- [x] SEC company identity collection
+- [x] SEC company identity resolution
+- [x] Company identity ingestion service
+- [x] SQLite-backed identity ingestion integration test
+- [ ] Provider-independent SEC filing discovery contract
 - [ ] SEC filing discovery
 - [ ] Raw SEC filing storage
 - [ ] Structured management-data extraction
+
+Initial filing-discovery targets:
+
+- `DEF 14A`
+- `10-K`
+- `8-K`
+
+Later:
+
+- Forms `3`
+- `4`
+- `5`
 
 ### Unstructured management research
 
@@ -1137,7 +1613,7 @@ Avoid large cross-cutting architecture changes as a first contribution.
 
 ```text
 README.md
-    Contributor orientation, setup, architecture, and roadmap.
+    Contributor orientation, setup, architecture, current status, and roadmap.
 
 docs/management-research-requirements.md
     Management-research requirements and design constraints.
@@ -1149,7 +1625,23 @@ pyproject.toml
     Supported environment variables without real secrets.
 
 src/stock_dd/models/
-    Typed domain models.
+    Typed application and management-domain models.
+
+src/stock_dd/collectors/
+    Provider-independent collection contracts and provider implementations.
+
+src/stock_dd/collectors/company_identity.py
+    Provider-independent company-identity collection types and contract.
+
+src/stock_dd/collectors/sec.py
+    SEC company-identity provider adapter.
+
+src/stock_dd/services/
+    Application/service orchestration that sits above provider and repository
+    boundaries.
+
+src/stock_dd/services/company_identity.py
+    Trusted company/listing identity ingestion and resolution.
 
 src/stock_dd/repositories/
     Provider-independent persistence contracts.
@@ -1163,17 +1655,14 @@ src/stock_dd/storage/sqlite_schema.py
 src/stock_dd/storage/sqlite_connection.py
     SQLite connection and caller-owned transaction helpers.
 
-src/stock_dd/collectors/
-    Provider-independent collection contracts and provider implementations.
-
 src/stock_dd/normalizers/
-    Provider-specific normalization.
+    Provider-specific financial normalization.
 
 src/stock_dd/pipeline.py
-    Offline and live pipeline orchestration.
+    Offline and live financial pipeline orchestration.
 
 tests/
-    Unit, contract, repository, and persistence tests.
+    Unit, contract, HTTP-adapter, repository, and integration tests.
 
 .github/workflows/ci.yml
     Automated quality checks.
@@ -1193,12 +1682,17 @@ Never commit:
 - generated reports
 - `.venv/`
 - coverage/cache files
+- local project handoff files intended to remain private
 
 Before pushing:
 
 ```powershell
 git status
 ```
+
+The repository currently ignores local SQLite database files and related WAL/SHM files.
+
+`PROJECT_HANDOFF.md` is also intended to remain local and ignored by Git.
 
 If a secret is accidentally committed, deleting it in a later commit does not remove it from Git history. Rotate the credential and address the history appropriately.
 
@@ -1222,8 +1716,41 @@ Current examples:
 
 - no external multi-agent framework is required
 - SQLite is the first normalized persistence backend
-- repository protocols exist before provider-specific persistence dependencies
-- provider-independent interfaces are designed before SEC network implementations
+- repository protocols exist before persistence-specific application dependencies
+- provider-independent interfaces are designed before provider network implementations
+- SEC provider code does not directly create internal application identities
+- application services coordinate trusted persistence
+- scoring is deferred until collection/evidence boundaries are mature
+
+---
+
+## Milestone-completion checklist
+
+Before declaring a substantial management-research milestone complete, review the full path:
+
+```text
+Domain model
+    ↓
+Application / repository / collector contract
+    ↓
+Provider or persistence boundary
+    ↓
+Concrete implementation
+    ↓
+Public export
+    ↓
+Tests
+```
+
+For integration-heavy work, also ask:
+
+```text
+Do the pieces work together through the real boundary?
+```
+
+For each public method and meaningful optional/error branch, map behavior to a test checklist.
+
+A milestone should not be considered complete merely because the happy-path implementation exists.
 
 ---
 
@@ -1243,3 +1770,36 @@ A useful contribution should be:
 - passing CI
 
 When uncertain, inspect the current feature branch, requirements, contracts, implementation, and tests before adding a new abstraction.
+
+---
+
+## Next milestone
+
+The next planned milestone is:
+
+```text
+Provider-independent SEC filing discovery
+```
+
+The first filing types to support are:
+
+```text
+DEF 14A
+10-K
+8-K
+```
+
+The provider-independent contract should be defined and tested before implementing SEC-specific HTTP discovery.
+
+The filing-discovery layer should preserve important metadata such as:
+
+- CIK/company identity
+- accession number
+- filing form
+- filing date
+- report date where available
+- primary document
+- source URL or document location
+- relevant point-in-time information
+
+Raw filing preservation and structured management extraction come after the filing-discovery boundary is established.
