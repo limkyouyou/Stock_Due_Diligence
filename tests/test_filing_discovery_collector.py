@@ -35,7 +35,7 @@ class StubFilingDiscoveryCollector:
                     accession_number="0000320193-25-000079",
                     form="10-K",
                     filed_on=date(2025, 10, 31),
-                    reported_date=date(2025, 9, 27),
+                    report_date=date(2025, 9, 27),
                     accepted_at=datetime(2025, 10, 31, 6, 1, tzinfo=UTC),
                     primary_document="aapl-20250927.htm",
                     filing_index_url="https://example.com/0000320193-25-000079",
@@ -107,7 +107,7 @@ def test_filing_discovery_collector_returns_dataset() -> None:
             accession_number="0000320193-25-000079",
             form="10-K",
             filed_on=date(2025, 10, 31),
-            reported_date=date(2025, 9, 27),
+            report_date=date(2025, 9, 27),
             accepted_at=datetime(
                 2025,
                 10,

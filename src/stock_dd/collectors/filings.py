@@ -55,7 +55,7 @@ class DiscoveredFiling:
     form: str
     filed_on: date
     filing_index_url: str
-    reported_date: date | None = None
+    report_date: date | None = None
     accepted_at: datetime | None = None
     primary_document: str | None = None
     primary_document_url: str | None = None

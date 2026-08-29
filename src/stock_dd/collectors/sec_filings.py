@@ -106,7 +106,7 @@ class SECFilingDiscoveryCollector:
             recent = self._require_object(
                 filings_object,
                 "recent",
-                context="SEC submissions filidngs",
+                context="SEC submissions filings",
             )
 
             discovered = list(
@@ -253,7 +253,7 @@ class SECFilingDiscoveryCollector:
             )
             filing_to = cls._require_date(
                 file_data.get("filingTo"),
-                field_name="hisotrical filingTo",
+                field_name="historical filingTo",
             )
 
             if filing_from > filing_to:
@@ -313,7 +313,7 @@ class SECFilingDiscoveryCollector:
 
         if len(filing_dates) != row_count or len(forms) != row_count:
             raise CollectorError(
-                "SEC filing-discovery columns habe inconsistent lengths."
+                "SEC filing-discovery columns have inconsistent lengths."
             )
 
         report_dates = cls._optional_column(
@@ -386,7 +386,7 @@ class SECFilingDiscoveryCollector:
                     form=form,
                     filed_on=filed_on,
                     filing_index_url=filing_index_url,
-                    reported_date=cls._optional_date(
+                    report_date=cls._optional_date(
                         report_dates[index],
                         field_name="reportDate",
                     ),
@@ -537,7 +537,7 @@ class SECFilingDiscoveryCollector:
             return datetime.fromisoformat(cleaned.replace("Z", "+00:00"))
         except ValueError as error:
             raise CollectorError(
-                "SEC filing-discovery payload contains an invalid acceptanceDatetime."
+                "SEC filing-discovery payload contains an invalid acceptanceDateTime."
             ) from error
 
     @staticmethod

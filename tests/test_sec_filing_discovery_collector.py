@@ -195,7 +195,7 @@ def test_discover_filters_recent_and_overlapping_history() -> None:
             accession_number="0000320193-26-000050",
             form="8-K",
             filed_on=date(2026, 8, 1),
-            reported_date=date(2026, 8, 1),
+            report_date=date(2026, 8, 1),
             accepted_at=datetime(
                 2026,
                 8,
@@ -222,7 +222,7 @@ def test_discover_filters_recent_and_overlapping_history() -> None:
             accession_number="0000320193-25-000079",
             form="10-K",
             filed_on=date(2025, 10, 31),
-            reported_date=date(2025, 9, 27),
+            report_date=date(2025, 9, 27),
             accepted_at=datetime(
                 2025,
                 10,
@@ -248,7 +248,7 @@ def test_discover_filters_recent_and_overlapping_history() -> None:
             accession_number="0000320193-24-000050",
             form="DEF 14A",
             filed_on=date(2024, 1, 15),
-            reported_date=date(2024, 1, 1),
+            report_date=date(2024, 1, 1),
             accepted_at=datetime(
                 2024,
                 1,
