@@ -1,4 +1,4 @@
-"""Coleect raw filing documents from SEC EDGAR archives."""
+"""Collect raw filing documents from SEC EDGAR archives."""
 
 import logging
 from collections.abc import Callable
@@ -66,7 +66,7 @@ class SECFilingDocumentCollector:
 
         if source_url is None:
             raise CollectorError(
-                "Discovered filings does not provide a primary-document URL."
+                "Discovered filing does not provide a primary-document URL."
             )
 
         self._validate_sec_archive_url(source_url)
@@ -96,7 +96,7 @@ class SECFilingDocumentCollector:
                         "SEC rate limit was reached during filing-document collection."
                     )
                 elif status_code == 403:
-                    message = "SEC access was denied during filing-document collection. Check the configuration User-Agent."
+                    message = "SEC access was denied during filing-document collection. Check the configured User-Agent."
                 else:
                     message = f"SEC filing-document request failed with HTTP status {status_code}."
 

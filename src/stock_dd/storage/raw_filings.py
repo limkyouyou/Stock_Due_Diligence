@@ -1,4 +1,4 @@
-"""Persist raw filing documents for auditing and offliner replay."""
+"""Persist raw filing documents for auditing and offline replay."""
 
 import hashlib
 import re

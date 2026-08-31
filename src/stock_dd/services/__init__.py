@@ -6,3 +6,6 @@ from stock_dd.services.company_identity import (
 from stock_dd.services.company_identity import (
     CompanyIdentityIngestionService as CompanyIdentityIngestionService,
 )
+from stock_dd.services.filing_evidence import (
+    SECFilingEvidenceIngestionService as SECFilingEvidenceIngestionService,
+)
