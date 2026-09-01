@@ -22,7 +22,7 @@ def _new_evidence_source_id() -> EvidenceSourceId:
 
 
 class SECFilingEvidenceIngestionService:
-    """Promote one stored SEC filing snapshot into trusted evidecen."""
+    """Promote one stored SEC filing snapshot into trusted evidence."""
 
     def __init__(
         self,
@@ -82,7 +82,7 @@ class SECFilingEvidenceIngestionService:
 
         if expected_url is None or document.source_url != expected_url:
             raise NormalizationError(
-                "Collected filing source URL does not match the discovered primary-document url."
+                "Collected filing source URL does not match the discovered primary-document URL."
             )
 
         expected_size = len(document.content)

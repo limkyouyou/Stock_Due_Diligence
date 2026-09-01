@@ -69,7 +69,7 @@ def _deserialize_candidate_value(
 
     if value_type == "str":
         if not isinstance(decoded, str):
-            raise ValueError("Stored candidate string is invalud")
+            raise ValueError("Stored candidate string is invalid")
 
         return decoded
 
@@ -120,7 +120,7 @@ def _deserialize_candidate_value(
 
         return PartialDate(year=year, month=month, day=day)
 
-    raise ValueError(f"Unkown candidate value type: {value_type}")
+    raise ValueError(f"Unknown candidate value type: {value_type}")
 
 
 class SQLiteEvidenceSourceRepository:
