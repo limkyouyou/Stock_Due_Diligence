@@ -1,0 +1,521 @@
+"""Deterministic structural parsing of SEC form 8-K filings."""
+
+import re
+from dataclasses import dataclass
+from html.parser import HTMLParser
+
+_BLOCK_TAGS = frozenset(
+    {
+        "address",
+        "article",
+        "aside",
+        "blockquote",
+        "dd",
+        "div",
+        "dl",
+        "dt",
+        "fieldset",
+        "figcaption",
+        "figure",
+        "footer",
+        "form",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "header",
+        "hr",
+        "li",
+        "main",
+        "nav",
+        "ol",
+        "p",
+        "pre",
+        "section",
+        "ul",
+    }
+)
+
+_SKIP_TAGS = frozenset(
+    {
+        "script",
+        "style",
+        "coscript",
+    }
+)
+
+_CELL_TAGS = frozenset(
+    {
+        "td",
+        "th",
+    }
+)
+
+_ITEM_HEADING_PATTERN = re.compile(
+    r"^item\s*(?P<item_code>\d+\.\d{2})(?!\d)",
+    re.IGNORECASE,
+)
+
+_PAGE_MARKER_PATTERN = re.compile(
+    r"^TABLE\s+OF\s+CONTENTS$",
+    re.IGNORECASE,
+)
+
+_NAVIGATION_ARTIFACT_PATTERN = re.compile(
+    r"^TABLE\s+OF\s+CONTENTS$",
+    re.IGNORECASE,
+)
+
+_SECTION_HEADING_PATTERN = re.compile(
+    r"^SECTION\s+\d+\b",
+    re.IGNORECASE,
+)
+
+_STANDALONE_SUBSECTION_PATTERN = re.compile(
+    r"^\([a-z]\)$",
+    re.IGNORECASE,
+)
+
+_FORM_8K_ITEM_CODES = frozenset(
+    {
+        "1.01",
+        "1.02",
+        "1.03",
+        "1.04",
+        "1.05",
+        "2.01",
+        "2.02",
+        "2.03",
+        "2.04",
+        "2.05",
+        "2.06",
+        "3.01",
+        "3.02",
+        "3.03",
+        "4.01",
+        "4.02",
+        "5.01",
+        "5.02",
+        "5.03",
+        "5.04",
+        "5.05",
+        "5.06",
+        "5.07",
+        "5.08",
+        "6.01",
+        "6.02",
+        "6.03",
+        "6.04",
+        "6.05",
+        "6.06",
+        "7.01",
+        "8.01",
+        "9.01",
+    }
+)
+
+
+def _normalize_whitespace(value: str) -> str:
+    """Collpase repeated whitespace into single spaces."""
+
+    return " ".join(value.split())
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class SEC8KLogicalBlock:
+    """One temporary ordered text block derived from filing HTML."""
+
+    index: int
+    text: str
+
+    def __post_init__(self) -> None:
+        if self.index < 0:
+            raise ValueError("index must not be negative.")
+
+        if not self.text.strip():
+            raise ValueError("text must not be empty.")
+
+    @property
+    def block_id(self) -> str:
+        """Return the temporary evidence address for this parse."""
+
+        return f"B{self.index:04d}"
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class SEC8KItemSection:
+    """One structurally identified Form 8-K Item section."""
+
+    item_code: str
+    blocks: tuple[SEC8KLogicalBlock, ...]
+
+    def __post_init__(self) -> None:
+        if not self.item_code.strip():
+            raise ValueError("item_code must not be empty.")
+
+        if not self.blocks:
+            raise ValueError("blocks must not be empty.")
+
+    @property
+    def text(self) -> str:
+        """Return the section as newline-separated text."""
+
+        return "\n".join(block.text for block in self.blocks)
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class SEC8KParseResult:
+    """Structural result produced from one Form 8-K document."""
+
+    sections: tuple[SEC8KItemSection, ...]
+    unrecognized_item_codes: tuple[str, ...]
+
+
+class _LogicalBlockHTMLParser(HTMLParser):
+    """Convert filing HTML into ordered human-readable blocks."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+
+        self.blocks: list[str] = []
+        self._parts: list[str] = []
+        self._skip_depth = 0
+        self._row_depth = 0
+
+    def _append_space(self) -> None:
+        if self._parts and not self._parts[-1].endswith(
+            (
+                " ",
+                "\n",
+                "\t",
+            )
+        ):
+            self._parts.append(" ")
+
+    def _flush(self) -> None:
+        text = _normalize_whitespace("".join(self._parts))
+
+        self._parts.clear()
+
+        if text:
+            self.blocks.append(text)
+
+    def handle_starttag(
+        self,
+        tag: str,
+        attrs: list[tuple[str, str | None]],
+    ) -> None:
+        del attrs
+
+        normalized_tag = tag.casefold()
+
+        if normalized_tag in _SKIP_TAGS:
+            self._skip_depth += 1
+            return
+
+        if self._skip_depth:
+            return
+
+        if normalized_tag == "tr":
+            self._flush()
+            self._row_depth += 1
+            return
+
+        if normalized_tag in _CELL_TAGS and self._row_depth:
+            self._append_space()
+            return
+
+        if normalized_tag == "br":
+            if self._row_depth:
+                self._append_space()
+            else:
+                self._flush()
+
+            return
+
+        if normalized_tag in _BLOCK_TAGS and not self._row_depth:
+            self._flush()
+
+    def handle_endtag(
+        self,
+        tag: str,
+    ) -> None:
+        normalized_tag = tag.casefold()
+
+        if normalized_tag in _SKIP_TAGS:
+            if self._skip_depth:
+                self._skip_depth -= 1
+
+            return
+
+        if self._skip_depth:
+            return
+
+        if normalized_tag == "tr":
+            if self._row_depth:
+                self._row_depth -= 1
+
+            if self._row_depth == 0:
+                self._flush()
+
+            return
+
+        if normalized_tag in _CELL_TAGS and self._row_depth:
+            self._append_space()
+
+            return
+
+        if normalized_tag in _BLOCK_TAGS and not self._row_depth:
+            self._flush()
+
+    def handle_data(
+        self,
+        data: str,
+    ) -> None:
+        if self._skip_depth == 0:
+            self._parts.append(data)
+
+    def close(self) -> None:
+        super().close()
+        self._flush()
+
+
+class SEC8KFilingParser:
+    """Parse the structural Item layout of one SEC Form 8-K."""
+
+    def parse(
+        self,
+        content: bytes,
+    ) -> SEC8KParseResult:
+        """Parse filing bytes into recognized Item sections."""
+
+        if not content:
+            raise ValueError("content must not be empty.")
+
+        blocks = self._to_logical_blocks(content)
+
+        return SEC8KParseResult(
+            sections=self._extract_sections(blocks),
+            unrecognized_item_codes=self._find_unrecognized_item_codes(blocks),
+        )
+
+    @staticmethod
+    def _to_logical_blocks(
+        content: bytes,
+    ) -> tuple[SEC8KLogicalBlock, ...]:
+        parser = _LogicalBlockHTMLParser()
+
+        parser.feed(
+            content.decode(
+                "utf-8",
+                errors="replace",
+            )
+        )
+        parser.close()
+
+        return tuple(
+            SEC8KLogicalBlock(
+                index=index,
+                text=text,
+            )
+            for index, text in enumerate(parser.blocks)
+        )
+
+    @staticmethod
+    def _candidate_item_code(
+        block: SEC8KLogicalBlock,
+    ) -> str | None:
+        match = _ITEM_HEADING_PATTERN.match(block.text)
+
+        if match is None:
+            return None
+
+        return match.group("item_code")
+
+    @classmethod
+    def _recognized_item_code(
+        cls,
+        block: SEC8KLogicalBlock,
+    ) -> str | None:
+        item_code = cls._candidate_item_code(block)
+
+        if item_code not in _FORM_8K_ITEM_CODES:
+            return None
+
+        return item_code
+
+    @classmethod
+    def _find_unrecognized_item_codes(
+        cls,
+        blocks: tuple[SEC8KLogicalBlock, ...],
+    ) -> tuple[str, ...]:
+        unrecognized: list[str] = []
+
+        for block in blocks:
+            item_code = cls._candidate_item_code(block)
+
+            if (
+                item_code is None
+                or item_code in _FORM_8K_ITEM_CODES
+                or item_code in unrecognized
+            ):
+                continue
+
+            unrecognized.append(item_code)
+
+        return tuple(unrecognized)
+
+    @staticmethod
+    def _is_signature_heading(
+        block: SEC8KLogicalBlock,
+    ) -> bool:
+        normalized = re.sub(
+            r"[^a-z]",
+            "",
+            block.text.casefold(),
+        )
+
+        return normalized in (
+            "signature",
+            "signatures",
+        )
+
+    @staticmethod
+    def _is_signature_boilerplate(
+        block: SEC8KLogicalBlock,
+    ) -> bool:
+        normalized = _normalize_whitespace(block.text).casefold()
+
+        return all(
+            fragment in normalized
+            for fragment in (
+                "securities exchange act of 1934",
+                "registrant",
+                "signed",
+                "undersigned",
+            )
+        )
+
+    @classmethod
+    def _is_substantive_body_block(
+        cls,
+        block: SEC8KLogicalBlock,
+    ) -> bool:
+        text = block.text.strip()
+
+        if _PAGE_MARKER_PATTERN.fullmatch(text):
+            return False
+
+        if _NAVIGATION_ARTIFACT_PATTERN.fullmatch(text):
+            return False
+
+        if _SECTION_HEADING_PATTERN.match(text):
+            return False
+
+        if _STANDALONE_SUBSECTION_PATTERN.fullmatch(text):
+            return False
+
+        if cls._recognized_item_code(block) is not None:
+            return False
+
+        if cls._is_signature_heading(block):
+            return False
+
+        if cls._is_signature_boilerplate(block):
+            return False
+
+        alphanumeric_text = re.sub(
+            r"[^A-Za-z0-9]+",
+            "",
+            text,
+        )
+
+        return len(alphanumeric_text) >= 8
+
+    @classmethod
+    def _append_section_if_substantive(
+        cls,
+        sections: list[SEC8KItemSection],
+        item_code: str,
+        blocks: tuple[SEC8KLogicalBlock, ...],
+    ) -> bool:
+        if not blocks:
+            return False
+
+        if not any(cls._is_substantive_body_block(block) for block in blocks[1:]):
+            return False
+
+        sections.append(
+            SEC8KItemSection(
+                item_code=item_code,
+                blocks=blocks,
+            )
+        )
+
+        return True
+
+    @classmethod
+    def _extract_sections(
+        cls,
+        blocks: tuple[SEC8KLogicalBlock, ...],
+    ) -> tuple[SEC8KItemSection, ...]:
+        sections: list[SEC8KItemSection] = []
+
+        current_item_code: str | None = None
+        current_start_index: int | None = None
+
+        for index, block in enumerate(blocks):
+            if current_item_code is not None and (
+                cls._is_signature_heading(block) or cls._is_signature_boilerplate(block)
+            ):
+                assert current_start_index is not None
+
+                appended = cls._append_section_if_substantive(
+                    sections,
+                    current_item_code,
+                    blocks[current_start_index:index],
+                )
+
+                if appended or sections:
+                    return tuple(sections)
+
+                current_item_code = None
+                current_start_index = None
+                continue
+
+            item_code = cls._recognized_item_code(block)
+
+            if item_code is None:
+                continue
+
+            if current_item_code is None:
+                current_item_code = item_code
+                current_start_index = index
+                continue
+
+            if item_code == current_item_code:
+                continue
+
+            assert current_start_index is not None
+
+            cls._append_section_if_substantive(
+                sections,
+                current_item_code,
+                blocks[current_start_index:index],
+            )
+
+            current_item_code = item_code
+            current_start_index = index
+
+        if current_item_code is not None:
+            assert current_start_index is not None
+
+            cls._append_section_if_substantive(
+                sections,
+                current_item_code,
+                blocks[current_start_index:],
+            )
+
+        return tuple(sections)
