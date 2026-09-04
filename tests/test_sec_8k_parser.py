@@ -7,6 +7,7 @@ from stock_dd.parsers import (
     SEC8KItemSection,
     SEC8KLogicalBlock,
     SEC8KParseResult,
+    SEC8KTerminationReason,
 )
 
 
@@ -134,8 +135,10 @@ def test_parse_stops_at_spaced_signature_heading() -> None:
     )
     assert "BB&T CORPORATION" not in result.sections[0].text
 
+    assert result.termination_reason == SEC8KTerminationReason.SIGNATURE_HEADING
 
-def test_parse_uses_signature_boilerplate_as_fallback() -> None:
+
+def test_parse_does_not_use_signature_boilerplate_as_terminator() -> None:
     result = _parse(
         """
         <p>Item 5.02 Departure of Directors</p>
@@ -151,7 +154,39 @@ def test_parse_uses_signature_boilerplate_as_fallback() -> None:
     )
 
     assert len(result.sections) == 1
-    assert "PFIZER INC." not in result.sections[0].text
+
+    assert result.termination_reason == SEC8KTerminationReason.END_OF_FILE
+
+    assert (
+        "Under the requirements of the Securities Exchange Act of 1934"
+        in result.sections[0].text
+    )
+
+    assert "PFIZER INC." in result.sections[0].text
+
+
+def test_parse_preserves_final_item_to_eof_without_signature_heading() -> None:
+    result = _parse(
+        """
+        <p>Item 5.02 Departure of Certain Officers</p>
+        <p>Jane Smith resigned as Chief Financial Officer.</p>
+        <p>Some unusual filing-ending heading</p>
+        <p>Additional material near the end of the filing.</p>
+        <p>ACME CORPORATION</p>
+        """
+    )
+
+    assert len(result.sections) == 1
+
+    assert result.termination_reason == SEC8KTerminationReason.END_OF_FILE
+
+    assert result.sections[0].text == (
+        "Item 5.02 Departure of Certain Officers\n"
+        "Jane Smith resigned as Chief Financial Officer.\n"
+        "Some unusual filing-ending heading\n"
+        "Additional material near the end of the filing.\n"
+        "ACME CORPORATION"
+    )
 
 
 def test_parse_does_not_treat_narrative_item_reference_as_heading() -> None:
@@ -402,7 +437,7 @@ def test_logical_block_validates_text() -> None:
         )
 
 
-def test_item_sectino_requires_item_code() -> None:
+def test_item_section_requires_item_code() -> None:
     block = SEC8KLogicalBlock(
         index=0,
         text="example",

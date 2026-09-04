@@ -2,6 +2,7 @@
 
 import re
 from dataclasses import dataclass
+from enum import StrEnum
 from html.parser import HTMLParser
 
 _BLOCK_TAGS = frozenset(
@@ -162,12 +163,20 @@ class SEC8KItemSection:
         return "\n".join(block.text for block in self.blocks)
 
 
+class SEC8KTerminationReason(StrEnum):
+    """How structural Item parsing reached the fiing boundary."""
+
+    SIGNATURE_HEADING = "signature_heading"
+    END_OF_FILE = "end_of_file"
+
+
 @dataclass(frozen=True, slots=True, kw_only=True)
 class SEC8KParseResult:
     """Structural result produced from one Form 8-K document."""
 
     sections: tuple[SEC8KItemSection, ...]
     unrecognized_item_codes: tuple[str, ...]
+    termination_reason: SEC8KTerminationReason
 
 
 class _LogicalBlockHTMLParser(HTMLParser):
@@ -293,9 +302,12 @@ class SEC8KFilingParser:
 
         blocks = self._to_logical_blocks(content)
 
+        sections, termination_reason = self._extract_sections(blocks)
+
         return SEC8KParseResult(
-            sections=self._extract_sections(blocks),
+            sections=sections,
             unrecognized_item_codes=self._find_unrecognized_item_codes(blocks),
+            termination_reason=termination_reason,
         )
 
     @staticmethod
@@ -379,22 +391,6 @@ class SEC8KFilingParser:
             "signatures",
         )
 
-    @staticmethod
-    def _is_signature_boilerplate(
-        block: SEC8KLogicalBlock,
-    ) -> bool:
-        normalized = _normalize_whitespace(block.text).casefold()
-
-        return all(
-            fragment in normalized
-            for fragment in (
-                "securities exchange act of 1934",
-                "registrant",
-                "signed",
-                "undersigned",
-            )
-        )
-
     @classmethod
     def _is_substantive_body_block(
         cls,
@@ -418,9 +414,6 @@ class SEC8KFilingParser:
             return False
 
         if cls._is_signature_heading(block):
-            return False
-
-        if cls._is_signature_boilerplate(block):
             return False
 
         alphanumeric_text = re.sub(
@@ -457,16 +450,17 @@ class SEC8KFilingParser:
     def _extract_sections(
         cls,
         blocks: tuple[SEC8KLogicalBlock, ...],
-    ) -> tuple[SEC8KItemSection, ...]:
+    ) -> tuple[
+        tuple[SEC8KItemSection, ...],
+        SEC8KTerminationReason,
+    ]:
         sections: list[SEC8KItemSection] = []
 
         current_item_code: str | None = None
         current_start_index: int | None = None
 
         for index, block in enumerate(blocks):
-            if current_item_code is not None and (
-                cls._is_signature_heading(block) or cls._is_signature_boilerplate(block)
-            ):
+            if current_item_code is not None and cls._is_signature_heading(block):
                 assert current_start_index is not None
 
                 appended = cls._append_section_if_substantive(
@@ -476,7 +470,10 @@ class SEC8KFilingParser:
                 )
 
                 if appended or sections:
-                    return tuple(sections)
+                    return (
+                        tuple(sections),
+                        SEC8KTerminationReason.SIGNATURE_HEADING,
+                    )
 
                 current_item_code = None
                 current_start_index = None
@@ -515,4 +512,7 @@ class SEC8KFilingParser:
                 blocks[current_start_index:],
             )
 
-        return tuple(sections)
+        return (
+            tuple(sections),
+            SEC8KTerminationReason.END_OF_FILE,
+        )
