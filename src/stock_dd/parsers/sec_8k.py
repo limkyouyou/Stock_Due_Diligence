@@ -42,7 +42,7 @@ _SKIP_TAGS = frozenset(
     {
         "script",
         "style",
-        "coscript",
+        "noscript",
     }
 )
 
@@ -58,10 +58,7 @@ _ITEM_HEADING_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-_PAGE_MARKER_PATTERN = re.compile(
-    r"^TABLE\s+OF\s+CONTENTS$",
-    re.IGNORECASE,
-)
+_PAGE_MARKER_PATTERN = re.compile(r"^(?:\d+|-\d+-)$")
 
 _NAVIGATION_ARTIFACT_PATTERN = re.compile(
     r"^TABLE\s+OF\s+CONTENTS$",
@@ -118,7 +115,7 @@ _FORM_8K_ITEM_CODES = frozenset(
 
 
 def _normalize_whitespace(value: str) -> str:
-    """Collpase repeated whitespace into single spaces."""
+    """Collapse repeated whitespace into single spaces."""
 
     return " ".join(value.split())
 

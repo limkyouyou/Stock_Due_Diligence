@@ -427,3 +427,45 @@ def test_item_section_requires_blocks() -> None:
             item_code="5.02",
             blocks=(),
         )
+
+
+def test_parse_ignores_noscript_content() -> None:
+    result = _parse(
+        """
+        <noscript>
+          Item 9.01 Fake noscript content.
+        </noscript>
+
+        <p>Item 5.02 Departure of Directors</p>
+        <p>John resigned.</p>
+        <p>SIGNATURE</p>
+        """
+    )
+
+    assert [section.item_code for section in result.sections] == ["5.02"]
+
+
+def test_parse_discards_toc_item_with_page_number_only() -> None:
+    result = _parse(
+        """
+        <p>TABLE OF CONTENTS</p>
+
+        <p>Item 5.02 Departure of Directors</p>
+        <p>3</p>
+
+        <p>Item 9.01 Financial Statements and Exhibits</p>
+        <p>4</p>
+
+        <p>Item 5.02 Departure of Directors</p>
+        <p>John resigned.</p>
+
+        <p>Item 9.01 Financial Statements and Exhibits</p>
+        <p>99.1 Press release.</p>
+
+        <p>SIGNATURES</p>
+        """
+    )
+
+    assert [section.item_code for section in result.sections] == ["5.02", "9.01"]
+
+    assert result.sections[0].text == "Item 5.02 Departure of Directors\nJohn resigned."
