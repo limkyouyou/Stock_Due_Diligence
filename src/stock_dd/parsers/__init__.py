@@ -13,3 +13,9 @@ from stock_dd.parsers.sec_8k import (
 from stock_dd.parsers.sec_8k import (
     SEC8KTerminationReason as SEC8KTerminationReason,
 )
+from stock_dd.parsers.sec_8k_review import (
+    SEC8KStructuralAssessment as SEC8KStructuralAssessment,
+)
+from stock_dd.parsers.sec_8k_review import (
+    assess_sec_8k_structure as assess_sec_8k_structure,
+)

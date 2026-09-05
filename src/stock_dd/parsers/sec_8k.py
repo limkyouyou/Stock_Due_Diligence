@@ -54,6 +54,13 @@ _CELL_TAGS = frozenset(
     }
 )
 
+_ROW_BLOCK_TAGS = frozenset(
+    {
+        "hr",
+        "p",
+    }
+)
+
 _ITEM_HEADING_PATTERN = re.compile(
     r"^item\s*(?P<item_code>\d+\.\d{2})(?!\d)",
     re.IGNORECASE,
@@ -75,6 +82,20 @@ _STANDALONE_SUBSECTION_PATTERN = re.compile(
     r"^\([a-z]\)$",
     re.IGNORECASE,
 )
+
+_TRAILING_PAGE_MARKER_PATTERN = re.compile(r"\s+(?:\d{1,3}|-\d{1,3}-)$")
+
+_HTML_STRUCTURE_PATTERN = re.compile(
+    r"<\s*(?:div|p|tr|td|th|br|h[1-6]|li|section|article)\b",
+    re.IGNORECASE,
+)
+
+_TEXT_PAYLOAD_PATTERN = re.compile(
+    r"<TEXT>\s*(?P<payload>.*?)\s*</TEXT>",
+    re.IGNORECASE | re.DOTALL,
+)
+
+_BLANK_LINE_PATTERN = re.compile(r"\n[ \t]*\n+")
 
 _FORM_8K_ITEM_CODES = frozenset(
     {
@@ -123,7 +144,7 @@ def _normalize_whitespace(value: str) -> str:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class SEC8KLogicalBlock:
-    """One temporary ordered text block derived from filing HTML."""
+    """One temporary ordered text block derived from filing content."""
 
     index: int
     text: str
@@ -164,7 +185,7 @@ class SEC8KItemSection:
 
 
 class SEC8KTerminationReason(StrEnum):
-    """How structural Item parsing reached the fiing boundary."""
+    """How structural Item parsing reached the filing boundary."""
 
     SIGNATURE_HEADING = "signature_heading"
     END_OF_FILE = "end_of_file"
@@ -229,6 +250,10 @@ class _LogicalBlockHTMLParser(HTMLParser):
             self._row_depth += 1
             return
 
+        if self._row_depth and normalized_tag in _ROW_BLOCK_TAGS:
+            self._flush()
+            return
+
         if normalized_tag in _CELL_TAGS and self._row_depth:
             self._append_space()
             return
@@ -266,6 +291,10 @@ class _LogicalBlockHTMLParser(HTMLParser):
             if self._row_depth == 0:
                 self._flush()
 
+            return
+
+        if self._row_depth and normalized_tag in _ROW_BLOCK_TAGS:
+            self._flush()
             return
 
         if normalized_tag in _CELL_TAGS and self._row_depth:
@@ -314,22 +343,41 @@ class SEC8KFilingParser:
     def _to_logical_blocks(
         content: bytes,
     ) -> tuple[SEC8KLogicalBlock, ...]:
-        parser = _LogicalBlockHTMLParser()
 
-        parser.feed(
-            content.decode(
-                "utf-8",
-                errors="replace",
-            )
+        decoded = content.decode(
+            "utf-8",
+            errors="replace",
         )
-        parser.close()
+
+        if _HTML_STRUCTURE_PATTERN.search(decoded):
+            parser = _LogicalBlockHTMLParser()
+
+            parser.feed(decoded)
+            parser.close()
+
+            block_texts = parser.blocks
+
+        else:
+            payload_match = _TEXT_PAYLOAD_PATTERN.search(decoded)
+
+            payload = (
+                payload_match.group("payload") if payload_match is not None else decoded
+            )
+
+            normalized_newlines = payload.replace("\r\n", "\n").replace("\r", "\n")
+
+            block_texts = [
+                normalized
+                for paragraph in _BLANK_LINE_PATTERN.split(normalized_newlines)
+                if (normalized := _normalize_whitespace(paragraph))
+            ]
 
         return tuple(
             SEC8KLogicalBlock(
                 index=index,
                 text=text,
             )
-            for index, text in enumerate(parser.blocks)
+            for index, text in enumerate(block_texts)
         )
 
     @staticmethod
@@ -425,22 +473,91 @@ class SEC8KFilingParser:
         return len(alphanumeric_text) >= 8
 
     @classmethod
-    def _append_section_if_substantive(
+    def _has_navigation_context(
+        cls,
+        all_blocks: tuple[SEC8KLogicalBlock, ...],
+        start_index: int,
+    ) -> bool:
+        """Return whether an Item heading belongs to a TOC Item run."""
+
+        index = start_index - 1
+
+        while index >= 0:
+            block = all_blocks[index]
+            text = block.text.strip()
+
+            if _NAVIGATION_ARTIFACT_PATTERN.fullmatch(text):
+                return True
+
+            if cls._recognized_item_code(block) is not None:
+                index -= 1
+                continue
+
+            if _PAGE_MARKER_PATTERN.fullmatch(text):
+                index -= 1
+                continue
+
+            return False
+
+        return False
+
+    @classmethod
+    def _is_probably_toc_section(
+        cls,
+        all_blocks: tuple[SEC8KLogicalBlock, ...],
+        start_index: int,
+        end_index: int,
+    ) -> bool:
+        """Return whether an Item candidate is probable navigation."""
+
+        section_blocks = all_blocks[start_index:end_index]
+
+        if not section_blocks:
+            return False
+
+        body_blocks = section_blocks[1:]
+
+        if any(cls._is_substantive_body_block(block) for block in body_blocks):
+            return False
+
+        heading = section_blocks[0].text.strip()
+
+        if _TRAILING_PAGE_MARKER_PATTERN.search(heading):
+            return True
+
+        if cls._has_navigation_context(all_blocks, start_index):
+            return True
+
+        return any(
+            _PAGE_MARKER_PATTERN.fullmatch(block.text.strip()) is not None
+            for block in body_blocks
+        )
+
+    @classmethod
+    def _append_section_unless_navigation(
         cls,
         sections: list[SEC8KItemSection],
         item_code: str,
-        blocks: tuple[SEC8KLogicalBlock, ...],
+        all_blocks: tuple[SEC8KLogicalBlock, ...],
+        start_index: int,
+        end_index: int,
     ) -> bool:
-        if not blocks:
+        section_blocks = all_blocks[start_index:end_index]
+
+        if not section_blocks:
             return False
 
-        if not any(cls._is_substantive_body_block(block) for block in blocks[1:]):
+        if cls._is_probably_toc_section(
+            all_blocks,
+            start_index,
+            end_index,
+        ):
             return False
 
         sections.append(
             SEC8KItemSection(
                 item_code=item_code,
-                blocks=blocks,
+                blocks=section_blocks,
             )
         )
 
@@ -463,10 +580,12 @@ class SEC8KFilingParser:
             if current_item_code is not None and cls._is_signature_heading(block):
                 assert current_start_index is not None
 
-                appended = cls._append_section_if_substantive(
+                appended = cls._append_section_unless_navigation(
                     sections,
                     current_item_code,
-                    blocks[current_start_index:index],
+                    blocks,
+                    current_start_index,
+                    index,
                 )
 
                 if appended or sections:
@@ -494,10 +613,12 @@ class SEC8KFilingParser:
 
             assert current_start_index is not None
 
-            cls._append_section_if_substantive(
+            cls._append_section_unless_navigation(
                 sections,
                 current_item_code,
-                blocks[current_start_index:index],
+                blocks,
+                current_start_index,
+                index,
             )
 
             current_item_code = item_code
@@ -506,10 +627,12 @@ class SEC8KFilingParser:
         if current_item_code is not None:
             assert current_start_index is not None
 
-            cls._append_section_if_substantive(
+            cls._append_section_unless_navigation(
                 sections,
                 current_item_code,
-                blocks[current_start_index:],
+                blocks,
+                current_start_index,
+                len(blocks),
             )
 
         return (

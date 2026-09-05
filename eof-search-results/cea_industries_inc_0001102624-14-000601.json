@@ -1,0 +1,13 @@
+{
+  "company_name": "CEA Industries Inc.",
+  "cik": "0001482541",
+  "accession_number": "0001102624-14-000601",
+  "form": "8-K",
+  "filing_date": "2014-04-18",
+  "primary_document": "surna8k.htm",
+  "source_url": "https://www.sec.gov/Archives/edgar/data/1482541/000110262414000601/surna8k.htm",
+  "termination_reason": "end_of_file",
+  "parsed_item_codes": [
+    "5.02"
+  ]
+}

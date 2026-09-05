@@ -1,0 +1,135 @@
+<DOCUMENT>
+<TYPE>8-K
+<SEQUENCE>1
+<FILENAME>form8kchgincon.txt
+<TEXT>
+                 SECURITIES AND EXCHANGE COMMISSION
+                        Washington, D.C. 20549
+
+                             FORM 8-K
+
+                         CURRENT REPORT
+Pursuant to Section 13 or 15(d) of the Securities Exchange Act of 1934
+
+                         June 15, 2018
+                         Date of Report
+                (Date of Earliest Event Reported)
+
+                  CANNASSIST INTERNATIONAL INC.
+     (Exact Name of Registrant as Specified in its Charter)
+
+             IRIS GROVE ACQUISITION CORPORATION
+       (Former Name of Registrant as Specified in its Charter)
+
+  Delaware                000-55809               82-1873116
+(State or other    (Commission File Number)      (IRS Employer
+jurisdiction                                    of incorporation)
+
+                   412 North Main Street
+                  Buffalo, Wyoming 82834
+     (Address of principal executive offices) (zip code)
+
+                      760-990-3091
+     (Registrant's telephone number, including area code
+
+                 9545 Wilshire Boulevard
+             Beverly Hills, California 90212
+     (Former Address of Principal Executive Offices)
+
+ITEM 3.02 Unregistered Sales of Equity Securities
+
+    On June 18, 2018, CannAssist International Inc. (formerly Iris
+Grove Acquisition Corporation. (the "Registrant" or the "Company")
+issued  shares of its common stock pursuant to Section 4(a)(2) of the
+Securities Act of 1933 at par representing 100% of the total
+outstanding 4,200,000 shares of common stock as follows:
+
+        Mark Palumbo                       3,000,000
+        Matthew Palumbo                     150,000
+        Erin Palumbo Smith                  150,000
+        Emily Tanner-McLean                 150,000
+        Batterson Partners LLC              375,000
+        Baldwin Dachs Holdings LLC          375,000
+
+     With the issuance of the stock and the redemption of 20,000,000
+shares of stock (discussed below), the Company effected a change in
+its control and the new majority shareholder(s) elected new management
+of the Company. The Company intends to develop its business plan by
+acquiring Xceptor, LLC, a Wyoming corporation. The Company changed
+its name as part of the change in control.  If the Company makes any
+acquisitions, mergers or other business combination, the Company will
+file a Form 8-K but until such time the Company remains a shell company.
+
+TEM 5.01  Changes in Control of Registrant
+
+      On June 15, 2018, the following events occurred which resulted
+in a change of control of the Registrant:
+
+      1.  The Registrant cancelled an aggregate of 20,000,000 of the
+then 20,000,000 shares of outstanding stock valued at par.
+
+      2.   The then current officers and directors resigned.
+
+      3.   New officer(s) and director(s) were appointed and elected.
+
+      The disclosure required by Item 5.01(a)(8) of Form 8-K was
+previously filed with the Securities and Exchange Commission on Form
+10-12G filed on July 7, 2017as amended and supplemented by the
+information contained in this report.
+
+ITEM 5.02  Departure of Directors or Principal Officers;
+           Election of Directors
+
+       On June 15, 2018, the following events occurred:
+
+       James M. Cassidy resigned as the Registrant's president,
+          secretary and director.
+
+        James McKillop resigned as the Registrant's vice president
+           and director.
+
+        Mark Palumbo was named sole director of the Registrant:
+
+        Mark Palumbo was named President, Chief Financial Officer
+           and Secretary of the Registrant.
+
+      Mark Palumbo serves as President, Chief Financial Officer,
+Secretary and sole director of the Company.  From 1980 to 1983, Mr.
+Palumbo worked at Ocean Technologies as an electronic technician
+supporting the development of submarine weapon systems of the Naval
+Underwater Systems Center in Newport, Rhode Island.  From 1983 to 1990,
+Mr. Palumbo worked at Dupont Pharmaceuticals initially as a pharmaceutical
+representative in Southern California and later in management at the Long
+Island, New York production facility that provided contract testing and
+manufacturing services  to the pharmaceutical, cosmetic, personal care
+and nutritional industries.
+
+      Beginning in 1990, Mr. Palumbo pursued his interest in the
+cosmetic and personal care industries and began working at US Cosmetics
+selling cosmetic ingredients to formulators and manufacturers. In 1995,
+Mr.Palumbo moved to Collaborative Laboratories where he directed the
+company's global sales initiative. In 1999, utilizing his industry
+knowledge and experience he formed DIOW Products (Doing it our Way)
+which worked with clients to develop, manufacture and supply raw
+materials for personal care, cosmetics and nutritional products.
+Mr.Palumbo sold DIOW in 2008 and, using the retained assets, formed
+EME Ltd. Since 2008, EME Ltd., with Mr. Palumbo as its principal executive
+officer, has worked independently and collaboratively to develop new
+products and to enhance the bioavailability and ease-of-use of existing
+products.  EME Ltd. currently includes a cell biology laboratory and
+two botanically based personal care, cosmetic, food and nutritional
+companies.
+
+                    SIGNATURES
+
+      Pursuant to the requirements of the Securities Exchange Act of
+1934, the Registrant has duly caused this report to be signed on its
+behalf by the undersigned hereunder duly authorized.
+
+                        CANNASSIST INTERNATIONAL INC.
+
+Date: June 18, 2018
+                       /s/ Mark Palumbo, President
+
+</TEXT>
+</DOCUMENT>

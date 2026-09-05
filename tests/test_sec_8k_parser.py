@@ -504,3 +504,143 @@ def test_parse_discards_toc_item_with_page_number_only() -> None:
     assert [section.item_code for section in result.sections] == ["5.02", "9.01"]
 
     assert result.sections[0].text == "Item 5.02 Departure of Directors\nJohn resigned."
+
+
+def test_parse_detects_items_inside_legacy_single_cell_table() -> None:
+    result = _parse(
+        """
+        <table>
+          <tr>
+            <td>
+              <b>
+                Item 5.02. Departure of Directors
+                or Principal Officers
+              </b>
+              <br>
+              <br>
+
+              <p>
+                <b>
+                  Item 9.01. Financial Statements
+                  and Exhibits
+                </b>
+                <br>
+                <br>
+
+              <p>
+                <b>(d) Exhibits</b>
+                <br>
+                99.1 Press Release
+
+              <p>
+                <hr>
+                <b>
+                  <center>SIGNATURE</center>
+                </b>
+
+              <p>
+                Pursuant to the requirements of the
+                Securities Exchange Act of 1934.
+            </td>
+          </tr>
+        </table>
+        """
+    )
+
+    assert [section.item_code for section in result.sections] == ["5.02", "9.01"]
+
+    assert result.sections[0].text.startswith("Item 5.02")
+
+    assert "Item 9.01" not in result.sections[0].text
+
+    assert result.termination_reason == SEC8KTerminationReason.SIGNATURE_HEADING
+
+
+def test_parse_discards_consecutive_toc_items_without_page_numbers() -> None:
+    result = _parse(
+        """
+        <p>TABLE OF CONTENTS</p>
+
+        <p>Item 5.02 Departure of Directors</p>
+        <p>Item 9.01 Financial Statements and Exhibits</p>
+        <p>SIGNATURES</p>
+
+        <p>Table of Contents</p>
+
+        <p>Item 5.02 Departure of Directors</p>
+        <p>Jane Smith was appointed Chief Financial Officer.</p>
+
+        <p>Item 9.01 Financial Statements and Exhibits</p>
+        <p>99.1 Press release.</p>
+
+        <p>SIGNATURES</p>
+        """
+    )
+
+    assert [section.item_code for section in result.sections] == ["5.02", "9.01"]
+
+    assert (
+        "Jane Smith was appointed Chief Financial Officer." in result.sections[0].text
+    )
+
+    assert result.termination_reason == SEC8KTerminationReason.SIGNATURE_HEADING
+
+
+def test_parse_extracts_items_from_plain_text_sec_document() -> None:
+    result = SEC8KFilingParser().parse(
+        b"""
+        <DOCUMENT>
+        <TYPE>8-K
+        <SEQUENCE>1
+        <FILENAME>example.txt
+        <TEXT>
+        FORM 8-K
+
+        ITEM 3.02 Unregistered Sales of Equity Securities
+
+        Shares were issued by the registrant.
+
+        ITEM 5.02 Departure of Directors or Principal Officers;
+                  Election of Directors
+
+        John Smith resigned as President.
+
+        Jane Smith was appointed Chief Financial Officer.
+
+        SIGNATURES
+
+        Pursuant to the requirements of the Securities
+        Exchange Act of 1934, the registrant has duly
+        caused this report to be signed.
+        </TEXT>
+        </DOCUMENT>
+        """
+    )
+
+    assert [section.item_code for section in result.sections] == ["3.02", "5.02"]
+
+    assert "John Smith resigned as President." in result.sections[1].text
+
+    assert (
+        "Jane Smith was appointed Chief Financial Officer." in result.sections[1].text
+    )
+
+    assert result.termination_reason == SEC8KTerminationReason.SIGNATURE_HEADING
+
+
+def test_parse_extracts_items_from_unwrapped_plain_text() -> None:
+    result = SEC8KFilingParser().parse(
+        b"""
+        ITEM 5.02 Departure of Directors
+
+        Jane Smith resigned as Chief Financial Officer.
+
+        SIGNATURES
+
+        The registrant signed this report.
+        """
+    )
+
+    assert [section.item_code for section in result.sections] == ["5.02"]
+
+    assert result.termination_reason == SEC8KTerminationReason.SIGNATURE_HEADING
